@@ -65,6 +65,22 @@ footer img {
   -webkit-animation: gradient-animation 1.5s ease-in-out infinite;
 }
 
+.selected {
+  @apply !border-red-700;
+}
+
+.factory-button {
+  @apply flex flex-col items-center justify-center p-4 border-4 border-solid rounded bg-zinc-900 hover:bg-zinc-800 border-zinc-900;
+}
+
+.factory-button img {
+  @apply w-16 h-16;
+}
+
+.factory-button span {
+  @apply text-xl;
+}
+
 @keyframes gradient-animation {
   0% {
     background-position: 200% 50%;
