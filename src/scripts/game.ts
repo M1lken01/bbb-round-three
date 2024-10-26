@@ -15,10 +15,6 @@ class Vec2 {
     this.v = { x, y };
   }
 
-  get value(): ShortVec2 {
-    return this.v;
-  }
-
   getX() {
     return this.v.x;
   }
@@ -31,12 +27,30 @@ class Vec2 {
     return this.v;
   }
 
-  getMultiplied(scalar: number, vector = this.get()) {
+  getAsTuple(): [number, number] {
+    return [this.v.x, this.v.y];
+  }
+
+  add(value: Vec2 | number): Vec2 {
+    value = value instanceof Vec2 ? value : new Vec2(value, value);
+    return new Vec2(this.getX() + value.getX(), this.getY() + value.getY());
+  }
+
+  subtract(value: Vec2 | number): Vec2 {
+    value = value instanceof Vec2 ? value : new Vec2(value, value);
+    return new Vec2(this.getX() - value.getX(), this.getY() - value.getY());
+  }
+
+  divide(scalar: number, vector = this.get()) {
+    return new Vec2(vector.x / scalar, vector.y / scalar);
+  }
+
+  multiply(scalar: number, vector = this.get()) {
     return new Vec2(vector.x * scalar, vector.y * scalar);
   }
 
   getZoomCorrected() {
-    return this.getMultiplied(game.getZoom());
+    return this.multiply(game.getZoom());
   }
 
   getDistanceFrom(other: Vec2) {
@@ -48,7 +62,7 @@ class Game {
   private cities: City[] = [];
   private factories: Factory[] = [];
   private selectedFactory: Battery | -1 = -1;
-  public mousePos = new Vec2();
+  private mousePos = new Vec2();
   private mapSize: Vec2;
   private zoom = 1;
   private pan: Vec2;
@@ -57,15 +71,14 @@ class Game {
 
   constructor(mapSize: Vec2) {
     this.mapSize = mapSize;
-    this.pan = new Vec2((this.mapSize.getX() - this.getMapWidth()) / 2, (this.mapSize.getY() - this.getMapHeight()) / 2);
-    //! move to quests
+    this.pan = this.mapSize.subtract(this.getMapAsVector()).divide(2);
+    //! move to quests \/
     this.addCity(new City(0, new Vec2(400, 300)));
     this.addCity(new City(1, new Vec2(800, 600)));
     this.addCity(new City(2, new Vec2(1200, 300)));
   }
 
   render() {
-    const [w, h] = [this.getMapWidth(), this.getMapHeight()];
     ctx.clearRect(0, 0, gameElem.width, gameElem.height);
     ctx.fillStyle = '#0d0d0d';
     ctx.fillRect(0, 0, gameElem.width, gameElem.height);
@@ -73,7 +86,23 @@ class Game {
     ctx.translate(this.pan.getX(), this.pan.getY());
     ctx.strokeStyle = '#efefef';
     ctx.lineWidth = 5;
-    ctx.strokeRect(0, 0, w, h);
+    ctx.strokeRect(0, 0, this.getMapWidth(), this.getMapHeight());
+    this.drawGrid();
+
+    if (!this.isDragging && this.selectedFactory !== -1) {
+      new Circle(this.mousePos.getZoomCorrected(), 100 * this.zoom, '#bbb').draw();
+      this.getCitiesInRange(this.mousePos, 100, this.selectedFactory).forEach((city) =>
+        new Circle(city.getPosition().getZoomCorrected(), 15 * this.zoom, '#eee', true).draw(),
+      );
+    }
+
+    this.factories.forEach((obj) => obj.draw());
+    this.cities.forEach((obj) => obj.draw());
+    ctx.restore();
+  }
+
+  private drawGrid() {
+    const [w, h] = [this.getMapWidth(), this.getMapHeight()];
     ctx.lineWidth = 1;
     const center = new Vec2(w / 2, h / 2).get();
     ctx.beginPath();
@@ -86,22 +115,6 @@ class Game {
     ctx.lineTo(center.x - w / 2, center.y);
     ctx.closePath();
     ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(center.x, center.y, 10 * this.zoom, 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.stroke();
-
-    if (!this.isDragging && this.selectedFactory !== -1) {
-      new Circle(this.mousePos.getZoomCorrected(), 100 * this.zoom, '#bbb').draw();
-      this.getCitiesInRange(this.mousePos, 100, this.selectedFactory).forEach((city) => {
-        new Circle(city.getPosition().getZoomCorrected(), 15 * this.zoom, '#bbb', true).draw();
-      });
-    }
-
-    this.factories.forEach((obj) => obj.draw());
-    this.cities.forEach((obj) => obj.draw());
-
-    ctx.restore();
   }
 
   handleMouse(event: MouseEvent) {
@@ -114,12 +127,7 @@ class Game {
     const oldZoom = this.zoom;
     this.zoom = Math.max(1, Math.min(5, Math.round((this.zoom - Math.sign(event.deltaY) * 0.25) * 4) / 4));
     const mouse = this.getPosFromMouse(event);
-    this.setPan(
-      new Vec2(
-        mouse.getX() - ((mouse.getX() - this.pan.getX()) / oldZoom) * this.zoom,
-        mouse.getY() - ((mouse.getY() - this.pan.getY()) / oldZoom) * this.zoom,
-      ),
-    );
+    this.setPan(mouse.subtract(mouse.subtract(this.pan).divide(oldZoom).multiply(this.zoom)));
     this.render();
   }
 
@@ -136,12 +144,12 @@ class Game {
 
   handleMouseDown(event: MouseEvent) {
     this.isDragging = true;
-    this.dragStart = new Vec2(event.clientX - this.pan.getX(), event.clientY - this.pan.getY());
+    this.dragStart = new Vec2(event.clientX, event.clientY).subtract(this.pan);
   }
 
   handleMouseMove(event: MouseEvent) {
     this.handleMouse(event);
-    if (this.isDragging) this.setPan(new Vec2(event.clientX - this.dragStart.getX(), event.clientY - this.dragStart.getY()));
+    if (this.isDragging) this.setPan(new Vec2(event.clientX, event.clientY).subtract(this.dragStart));
     this.render();
   }
 
@@ -150,11 +158,12 @@ class Game {
   }
 
   private getPosFromMouse(event: MouseEvent) {
-    return new Vec2(event.clientX - gameElem.getBoundingClientRect().left, event.clientY - gameElem.getBoundingClientRect().top);
+    const bounds = gameElem.getBoundingClientRect();
+    return new Vec2(event.clientX, event.clientY).subtract(new Vec2(bounds.left, bounds.top));
   }
 
   private getCorrectPos(vector: Vec2) {
-    return new Vec2((vector.getX() - this.pan.getX()) / this.zoom, (vector.getY() - this.pan.getY()) / this.zoom);
+    return vector.subtract(this.pan).divide(this.zoom);
   }
 
   private setPan(vector: Vec2) {
@@ -182,6 +191,10 @@ class Game {
 
   getMapHeight() {
     return this.mapSize.getY() * this.zoom;
+  }
+
+  getMapAsVector() {
+    return this.mapSize.multiply(this.zoom);
   }
 
   getCities() {
@@ -239,15 +252,12 @@ class City {
   }
 
   public draw() {
-    const pos = this.position.getZoomCorrected().get();
-    const halfSize = (this.size / 2) * game.getZoom();
     const size = this.size * game.getZoom();
-    ctx.drawImage(resources.cities[batteryColors[this.batteryType]] as HTMLImageElement, pos.x - halfSize, pos.y - halfSize, size, size);
-    ctx.strokeStyle = 'black';
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, 5 * game.getZoom(), 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.stroke();
+    const pos = this.position
+      .getZoomCorrected()
+      .subtract(size / 2)
+      .get();
+    ctx.drawImage(resources.cities[batteryColors[this.batteryType]] as HTMLImageElement, pos.x, pos.y, size, size);
   }
 
   public getBatteryType(): number {
@@ -271,30 +281,34 @@ class Factory {
   }
 
   public draw() {
-    const pos = this.position.getZoomCorrected().get();
-    const halfSize = (this.size / 2) * game.getZoom();
     const size = this.size * game.getZoom();
+    ctx.strokeStyle = batteryColors[this.batteryType];
+    ctx.lineWidth = 1;
     game.getCities().forEach((city) => {
       if (city.getBatteryType() === this.batteryType && this.position.getDistanceFrom(city.getPosition()) <= this.range) {
         ctx.beginPath();
-        ctx.strokeStyle = batteryColors[this.batteryType];
-        ctx.lineWidth = 1;
-        const cityPos = city.getPosition().getZoomCorrected().get();
-        ctx.moveTo(pos.x, pos.y);
-        ctx.lineTo(cityPos.x, cityPos.y);
+        ctx.moveTo(...this.position.getZoomCorrected().getAsTuple());
+        ctx.lineTo(...city.getPosition().getZoomCorrected().getAsTuple());
         ctx.closePath();
         ctx.stroke();
       }
     });
-    ctx.drawImage(resources.factories[batteryColors[this.batteryType]] as HTMLImageElement, pos.x - halfSize, pos.y - halfSize, size, size);
+    ctx.drawImage(
+      resources.factories[batteryColors[this.batteryType]] as HTMLImageElement,
+      ...this.position
+        .getZoomCorrected()
+        .subtract(size / 2)
+        .getAsTuple(),
+      size,
+      size,
+    );
   }
 
   public drawRing() {
-    const pos = this.position.getZoomCorrected().get();
     ctx.strokeStyle = batteryColors[this.batteryType];
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(pos.x, pos.y, this.range * game.getZoom(), 0, Math.PI * 2);
+    ctx.arc(...this.position.getZoomCorrected().getAsTuple(), this.range * game.getZoom(), 0, Math.PI * 2);
     ctx.closePath();
     ctx.stroke();
   }
@@ -314,11 +328,10 @@ class Circle {
   }
 
   public draw() {
-    const pos = this.position.get();
     ctx.beginPath();
     ctx.strokeStyle = this.color;
     ctx.fillStyle = this.color;
-    ctx.arc(pos.x, pos.y, this.radius, 0, Math.PI * 2);
+    ctx.arc(...this.position.getAsTuple(), this.radius, 0, Math.PI * 2);
     ctx.closePath();
     if (this.filled) ctx.fill();
     else ctx.stroke();
