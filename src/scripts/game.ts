@@ -1,6 +1,11 @@
 const gameElem = document.querySelector('canvas#game') as HTMLCanvasElement;
 const ctx = gameElem.getContext('2d') as CanvasRenderingContext2D;
 const buildFactoryButtons = document.querySelectorAll('button.factory-button') as NodeListOf<HTMLButtonElement>;
+let game: Game;
+
+type Battery = 0 | 1 | 2;
+const batteryColors = ['red', 'blue', 'green'] as const;
+type BatteryColor = (typeof batteryColors)[number];
 
 type ShortVec2 = { x: number; y: number };
 class Vec2 {
@@ -27,11 +32,11 @@ class Vec2 {
   }
 
   getMultiplied(scalar: number, vector = this.get()) {
-    return { x: vector.x * scalar, y: vector.y * scalar };
+    return new Vec2(vector.x * scalar, vector.y * scalar);
   }
 
-  getZoomCorrected(): ShortVec2 {
-    return this.getMultiplied(zoom);
+  getZoomCorrected() {
+    return this.getMultiplied(game.getZoom());
   }
 
   getDistanceFrom(other: Vec2) {
@@ -39,14 +44,171 @@ class Vec2 {
   }
 }
 
-gameElem.width = 1600;
-gameElem.height = 900;
+class Game {
+  private cities: City[] = [];
+  private factories: Factory[] = [];
+  private selectedFactory: Battery | -1 = -1;
+  public mousePos = new Vec2();
+  private mapSize: Vec2;
+  private zoom = 1;
+  private pan: Vec2;
+  private isDragging = false;
+  private dragStart = new Vec2();
 
-let cities: City[] = [];
-let factories: Factory[] = [];
-type Battery = 0 | 1 | 2;
-const batteryColors = ['red', 'blue', 'green'] as const;
-type BatteryColor = (typeof batteryColors)[number];
+  constructor(mapSize: Vec2) {
+    this.mapSize = mapSize;
+    this.pan = new Vec2((this.mapSize.getX() - this.getMapWidth()) / 2, (this.mapSize.getY() - this.getMapHeight()) / 2);
+    //! move to quests
+    this.addCity(new City(0, new Vec2(400, 300)));
+    this.addCity(new City(1, new Vec2(800, 600)));
+    this.addCity(new City(2, new Vec2(1200, 300)));
+  }
+
+  render() {
+    const [w, h] = [this.getMapWidth(), this.getMapHeight()];
+    ctx.clearRect(0, 0, gameElem.width, gameElem.height);
+    ctx.fillStyle = '#0d0d0d';
+    ctx.fillRect(0, 0, gameElem.width, gameElem.height);
+    ctx.save();
+    ctx.translate(this.pan.getX(), this.pan.getY());
+    ctx.strokeStyle = '#efefef';
+    ctx.lineWidth = 5;
+    ctx.strokeRect(0, 0, w, h);
+    ctx.lineWidth = 1;
+    const center = new Vec2(w / 2, h / 2).get();
+    ctx.beginPath();
+    ctx.moveTo(center.x, center.y + h / 2);
+    ctx.lineTo(center.x, center.y - h / 2);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(center.x + w / 2, center.y);
+    ctx.lineTo(center.x - w / 2, center.y);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(center.x, center.y, 10 * this.zoom, 0, Math.PI * 2);
+    ctx.closePath();
+    ctx.stroke();
+
+    if (!this.isDragging && this.selectedFactory !== -1) {
+      new Circle(this.mousePos.getZoomCorrected(), 100 * this.zoom, '#bbb').draw();
+      this.getCitiesInRange(this.mousePos, 100, this.selectedFactory).forEach((city) => {
+        new Circle(city.getPosition().getZoomCorrected(), 15 * this.zoom, '#bbb', true).draw();
+      });
+    }
+
+    this.factories.forEach((obj) => obj.draw());
+    this.cities.forEach((obj) => obj.draw());
+
+    ctx.restore();
+  }
+
+  handleMouse(event: MouseEvent) {
+    this.mousePos = this.getCorrectPos(this.getPosFromMouse(event));
+  }
+
+  handleScroll(event: WheelEvent) {
+    event.preventDefault();
+    this.handleMouse(event);
+    const oldZoom = this.zoom;
+    this.zoom = Math.max(1, Math.min(5, Math.round((this.zoom - Math.sign(event.deltaY) * 0.25) * 4) / 4));
+    const mouse = this.getPosFromMouse(event);
+    this.setPan(
+      new Vec2(
+        mouse.getX() - ((mouse.getX() - this.pan.getX()) / oldZoom) * this.zoom,
+        mouse.getY() - ((mouse.getY() - this.pan.getY()) / oldZoom) * this.zoom,
+      ),
+    );
+    this.render();
+  }
+
+  handleClick(event: MouseEvent) {
+    this.handleMouse(event);
+    if (this.selectedFactory !== -1) {
+      // ! add a check if a city or another factory is too close
+      this.factories.push(new Factory(this.selectedFactory, this.mousePos));
+      this.selectedFactory = -1;
+    }
+    this.render();
+    updateUI();
+  }
+
+  handleMouseDown(event: MouseEvent) {
+    this.isDragging = true;
+    this.dragStart = new Vec2(event.clientX - this.pan.getX(), event.clientY - this.pan.getY());
+  }
+
+  handleMouseMove(event: MouseEvent) {
+    this.handleMouse(event);
+    if (this.isDragging) this.setPan(new Vec2(event.clientX - this.dragStart.getX(), event.clientY - this.dragStart.getY()));
+    this.render();
+  }
+
+  stopDragging() {
+    this.isDragging = false;
+  }
+
+  private getPosFromMouse(event: MouseEvent) {
+    return new Vec2(event.clientX - gameElem.getBoundingClientRect().left, event.clientY - gameElem.getBoundingClientRect().top);
+  }
+
+  private getCorrectPos(vector: Vec2) {
+    return new Vec2((vector.getX() - this.pan.getX()) / this.zoom, (vector.getY() - this.pan.getY()) / this.zoom);
+  }
+
+  private setPan(vector: Vec2) {
+    this.pan = new Vec2(
+      Math.min(0, Math.max(gameElem.width - this.getMapWidth(), vector.getX())),
+      Math.min(0, Math.max(gameElem.height - this.getMapHeight(), vector.getY())),
+    );
+  }
+
+  getMapSize() {
+    return this.mapSize;
+  }
+
+  getZoom() {
+    return this.zoom;
+  }
+
+  getPan() {
+    return this.pan;
+  }
+
+  getMapWidth() {
+    return this.mapSize.getX() * this.zoom;
+  }
+
+  getMapHeight() {
+    return this.mapSize.getY() * this.zoom;
+  }
+
+  getCities() {
+    return this.cities;
+  }
+
+  addCity(city: City) {
+    this.cities.push(city);
+  }
+
+  getFactories() {
+    return this.factories;
+  }
+
+  getSelectedFactory() {
+    return this.selectedFactory;
+  }
+
+  setSelectedFactory(value: Battery) {
+    this.selectedFactory = value === game.selectedFactory ? -1 : value;
+  }
+
+  getCitiesInRange(vector: Vec2, range: number, type: Battery) {
+    return game.getCities().filter((city) => city.getBatteryType() === type && vector.getDistanceFrom(city.getPosition()) <= range);
+  }
+}
+
 type ImageCollection = {
   [key in BatteryColor]: HTMLImageElement | undefined;
 };
@@ -65,41 +227,25 @@ const resources: {
     green: undefined,
   },
 };
-let selectedFactory: Battery | -1 = -1;
-
-let zoom = 1;
-const mapWidth = () => 1600 * zoom;
-const mapHeight = () => 900 * zoom;
-
-let panX = (gameElem.width - mapWidth()) / 2;
-let panY = (gameElem.height - mapHeight()) / 2;
-
-let isDragging = false;
-let startX = 0;
-let startY = 0;
-
-let mouseClick = new Vec2().get();
 
 class City {
   private batteryType: Battery;
   private position: Vec2;
   private size = 25;
-  private range = 100;
 
-  constructor(batteryType: Battery, position: Vec2 = new Vec2(), color: string = '#000') {
+  constructor(batteryType: Battery, position: Vec2 = new Vec2()) {
     this.batteryType = batteryType;
     this.position = position;
   }
 
   public draw() {
-    const pos = this.position.getZoomCorrected();
-    console.log({ actual: this.position.get(), drawing: pos });
-    const halfSize = (this.size / 2) * zoom;
-    const size = this.size * zoom;
+    const pos = this.position.getZoomCorrected().get();
+    const halfSize = (this.size / 2) * game.getZoom();
+    const size = this.size * game.getZoom();
     ctx.drawImage(resources.cities[batteryColors[this.batteryType]] as HTMLImageElement, pos.x - halfSize, pos.y - halfSize, size, size);
     ctx.strokeStyle = 'black';
     ctx.beginPath();
-    ctx.arc(pos.x, pos.y, 5 * zoom, 0, Math.PI * 2);
+    ctx.arc(pos.x, pos.y, 5 * game.getZoom(), 0, Math.PI * 2);
     ctx.closePath();
     ctx.stroke();
   }
@@ -125,15 +271,15 @@ class Factory {
   }
 
   public draw() {
-    const pos = this.position.getZoomCorrected();
-    const halfSize = (this.size / 2) * zoom;
-    const size = this.size * zoom;
-    cities.forEach((city) => {
+    const pos = this.position.getZoomCorrected().get();
+    const halfSize = (this.size / 2) * game.getZoom();
+    const size = this.size * game.getZoom();
+    game.getCities().forEach((city) => {
       if (city.getBatteryType() === this.batteryType && this.position.getDistanceFrom(city.getPosition()) <= this.range) {
         ctx.beginPath();
         ctx.strokeStyle = batteryColors[this.batteryType];
         ctx.lineWidth = 1;
-        const cityPos = city.getPosition().getZoomCorrected();
+        const cityPos = city.getPosition().getZoomCorrected().get();
         ctx.moveTo(pos.x, pos.y);
         ctx.lineTo(cityPos.x, cityPos.y);
         ctx.closePath();
@@ -144,11 +290,11 @@ class Factory {
   }
 
   public drawRing() {
-    const pos = this.position.getZoomCorrected();
+    const pos = this.position.getZoomCorrected().get();
     ctx.strokeStyle = batteryColors[this.batteryType];
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.arc(pos.x, pos.y, this.range * zoom, 0, Math.PI * 2);
+    ctx.arc(pos.x, pos.y, this.range * game.getZoom(), 0, Math.PI * 2);
     ctx.closePath();
     ctx.stroke();
   }
@@ -156,29 +302,28 @@ class Factory {
 
 class Circle {
   private position: Vec2;
-  private color: string;
+  private radius: number;
+  private color: string | CanvasGradient;
+  private filled: boolean;
 
-  constructor(position: Vec2 = new Vec2(), color: string = '#000') {
+  constructor(position: Vec2 = new Vec2(), radius: number = 5, color: string | CanvasGradient = '#000', filled: boolean = false) {
     this.position = position;
+    this.radius = radius;
     this.color = color;
+    this.filled = filled;
   }
 
   public draw() {
     const pos = this.position.get();
-    const size = 5 * zoom;
-    ctx.strokeStyle = this.color;
     ctx.beginPath();
-    ctx.arc(pos.x, pos.y, size, 0, Math.PI * 2);
+    ctx.strokeStyle = this.color;
+    ctx.fillStyle = this.color;
+    ctx.arc(pos.x, pos.y, this.radius, 0, Math.PI * 2);
     ctx.closePath();
-    ctx.stroke();
+    if (this.filled) ctx.fill();
+    else ctx.stroke();
   }
 }
-
-/*factories.push(new Factory(0, new Vec2(25, 0), 'red'));
-factories.push(new Factory(1, new Vec2(-25, 0), 'blue'));*/
-cities.push(new City(0, new Vec2(400, 300), 'red'));
-cities.push(new City(1, new Vec2(800, 600), 'blue'));
-cities.push(new City(2, new Vec2(1200, 300), 'yellow'));
 
 async function loadResources() {
   batteryColors.forEach(async (color) => {
@@ -189,113 +334,6 @@ async function loadResources() {
   });
 }
 
-async function getImage(src: string) {
-  const img = new Image();
-  img.src = `data:image/svg+xml;base64,${btoa(await (await fetch(src)).text())}`;
-  return img;
-}
-
-function render() {
-  ctx.clearRect(0, 0, gameElem.width, gameElem.height);
-  ctx.fillStyle = '#0d0d0d';
-  ctx.fillRect(0, 0, gameElem.width, gameElem.height);
-  ctx.save();
-  ctx.translate(panX, panY);
-
-  // Draw the map boundaries (to visualize the edges of the map)
-  ctx.strokeStyle = 'white';
-  ctx.lineWidth = 5;
-  ctx.strokeRect(0, 0, mapWidth(), mapHeight());
-
-  ctx.lineWidth = 1;
-  const center = new Vec2(mapWidth() / 2, mapHeight() / 2).get();
-  ctx.beginPath();
-  ctx.moveTo(center.x, center.y + mapHeight() / 2);
-  ctx.lineTo(center.x, center.y - mapHeight() / 2);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.moveTo(center.x + mapWidth() / 2, center.y);
-  ctx.lineTo(center.x - mapWidth() / 2, center.y);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(center.x, center.y, 10 * zoom, 0, Math.PI * 2);
-  ctx.closePath();
-  ctx.stroke();
-
-  factories.forEach((obj) => obj.draw());
-  cities.forEach((obj) => obj.draw());
-
-  const mc = new Vec2(mouseClick.x, mouseClick.y).getZoomCorrected();
-  new Circle(new Vec2(mc.x, mc.y), 'red').draw();
-
-  // Restore context state
-  ctx.restore();
-  updateUI();
-}
-
-function updateUI() {
-  buildFactoryButtons.forEach((button) => {
-    button.classList.remove('selected');
-  });
-  if (selectedFactory !== -1) document.querySelector(`button[data-factory="${selectedFactory}"]`)!.classList.add('selected');
-}
-
-gameElem.addEventListener('wheel', (event) => {
-  event.preventDefault();
-  const oldZoom = zoom;
-  zoom = Math.max(1, Math.min(5, Math.round((zoom - Math.sign(event.deltaY) * 0.25) * 4) / 4));
-  const mouseX = event.clientX - gameElem.getBoundingClientRect().left;
-  const mouseY = event.clientY - gameElem.getBoundingClientRect().top;
-  panX = Math.min(0, Math.max(gameElem.width - mapWidth(), mouseX - ((mouseX - panX) / oldZoom) * zoom));
-  panY = Math.min(0, Math.max(gameElem.height - mapHeight(), mouseY - ((mouseY - panY) / oldZoom) * zoom));
-  console.log({ zoom, panX, panY });
-  render();
-});
-
-gameElem.addEventListener('mousedown', (event: MouseEvent) => {
-  isDragging = true;
-  startX = event.clientX - panX;
-  startY = event.clientY - panY;
-});
-
-gameElem.addEventListener('mousemove', (event: MouseEvent) => {
-  if (isDragging) {
-    panX = Math.min(0, Math.max(gameElem.width - mapWidth(), event.clientX - startX));
-    panY = Math.min(0, Math.max(gameElem.height - mapHeight(), event.clientY - startY));
-    render();
-  }
-});
-
-gameElem.addEventListener('mouseup', () => {
-  isDragging = false;
-});
-
-gameElem.addEventListener('mouseleave', () => {
-  isDragging = false;
-});
-
-gameElem.addEventListener('click', (event) => {
-  const mouseX = event.clientX - gameElem.getBoundingClientRect().left;
-  const mouseY = event.clientY - gameElem.getBoundingClientRect().top;
-  const sv = { x: (mouseX - panX) / zoom, y: (mouseY - panY) / zoom };
-  mouseClick = new Vec2(sv.x, sv.y).get();
-  if (selectedFactory !== -1) factories.push(new Factory(selectedFactory, new Vec2(mouseClick.x, mouseClick.y)));
-  selectedFactory = -1;
-  render();
-});
-
-buildFactoryButtons.forEach((button) => {
-  button.addEventListener('click', () => {
-    const clicked = Number(button.dataset.factory) as Battery;
-    selectedFactory = clicked === selectedFactory ? -1 : clicked;
-    updateUI();
-  });
-});
-
-loadResources();
-
 function waitForResources(callback: Function) {
   setTimeout(() => {
     if (Object.values(resources.factories).some((factory) => !factory) || Object.values(resources.cities).some((city) => !city)) waitForResources(callback);
@@ -303,4 +341,41 @@ function waitForResources(callback: Function) {
   }, 100);
 }
 
-waitForResources(render);
+async function getImage(src: string) {
+  const img = new Image();
+  img.src = `data:image/svg+xml;base64,${btoa(await (await fetch(src)).text())}`;
+  return img;
+}
+
+function updateUI() {
+  buildFactoryButtons.forEach((button) => button.classList.remove('selected'));
+  if (game.getSelectedFactory() !== -1) document.querySelector(`button[data-factory="${game.getSelectedFactory()}"]`)!.classList.add('selected');
+}
+
+function setupListeners() {
+  gameElem.addEventListener('wheel', (event) => game.handleScroll(event));
+  gameElem.addEventListener('mousedown', (event: MouseEvent) => game.handleMouseDown(event));
+  gameElem.addEventListener('mousemove', (event: MouseEvent) => game.handleMouseMove(event));
+  gameElem.addEventListener('mouseup', () => game.stopDragging());
+  gameElem.addEventListener('mouseleave', () => game.stopDragging());
+  gameElem.addEventListener('click', (event) => game.handleClick(event));
+  buildFactoryButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      game.setSelectedFactory(Number(button.dataset.factory) as Battery);
+      updateUI();
+    });
+  });
+}
+
+function init() {
+  game = new Game(new Vec2(1600, 900));
+  gameElem.width = game.getMapSize().getX();
+  gameElem.height = game.getMapSize().getY();
+  loadResources();
+  waitForResources(() => {
+    setupListeners();
+    game.render();
+  });
+}
+
+init();
