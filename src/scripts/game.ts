@@ -44,9 +44,28 @@ gameElem.height = 900;
 
 let cities: City[] = [];
 let factories: Factory[] = [];
-type battery = 0 | 1 | 2;
-const batteryColors = ['red', 'blue', 'yellow'];
-let selectedFactory: battery | -1 = -1;
+type Battery = 0 | 1 | 2;
+const batteryColors = ['red', 'blue', 'green'] as const;
+type BatteryColor = (typeof batteryColors)[number];
+type ImageCollection = {
+  [key in BatteryColor]: HTMLImageElement | undefined;
+};
+const resources: {
+  factories: ImageCollection;
+  cities: ImageCollection;
+} = {
+  factories: {
+    red: undefined,
+    blue: undefined,
+    green: undefined,
+  },
+  cities: {
+    red: undefined,
+    blue: undefined,
+    green: undefined,
+  },
+};
+let selectedFactory: Battery | -1 = -1;
 
 let zoom = 1;
 const mapWidth = () => 1600 * zoom;
@@ -62,12 +81,12 @@ let startY = 0;
 let mouseClick = new Vec2().get();
 
 class City {
-  private batteryType: battery;
+  private batteryType: Battery;
   private position: Vec2;
-  private size = 20;
+  private size = 25;
   private range = 100;
 
-  constructor(batteryType: battery, position: Vec2 = new Vec2(), color: string = '#000') {
+  constructor(batteryType: Battery, position: Vec2 = new Vec2(), color: string = '#000') {
     this.batteryType = batteryType;
     this.position = position;
   }
@@ -77,14 +96,7 @@ class City {
     console.log({ actual: this.position.get(), drawing: pos });
     const halfSize = (this.size / 2) * zoom;
     const size = this.size * zoom;
-    ctx.fillStyle = batteryColors[this.batteryType];
-    ctx.fillRect(pos.x - halfSize, pos.y - halfSize, size, size);
-    ctx.beginPath();
-    ctx.moveTo(pos.x - halfSize, pos.y - halfSize);
-    ctx.lineTo(pos.x, pos.y - size);
-    ctx.lineTo(pos.x - halfSize + size, pos.y - halfSize);
-    ctx.closePath();
-    ctx.fill();
+    ctx.drawImage(resources.cities[batteryColors[this.batteryType]] as HTMLImageElement, pos.x - halfSize, pos.y - halfSize, size, size);
     ctx.strokeStyle = 'black';
     ctx.beginPath();
     ctx.arc(pos.x, pos.y, 5 * zoom, 0, Math.PI * 2);
@@ -102,40 +114,25 @@ class City {
 }
 
 class Factory {
-  private batteryType: battery;
+  private batteryType: Battery;
   private position: Vec2;
-  private size = 20;
+  private size = 25;
   private range = 100;
 
-  constructor(batteryType: battery, position: Vec2 = new Vec2()) {
+  constructor(batteryType: Battery, position: Vec2 = new Vec2()) {
     this.batteryType = batteryType;
     this.position = position;
   }
 
   public draw() {
     const pos = this.position.getZoomCorrected();
-    const quarterSize = (this.size / 4) * zoom;
     const halfSize = (this.size / 2) * zoom;
     const size = this.size * zoom;
-    ctx.fillStyle = batteryColors[this.batteryType];
-    ctx.fillRect(pos.x - halfSize, pos.y, size, size / 2);
-    ctx.beginPath();
-    ctx.moveTo(pos.x - halfSize, pos.y); // top left
-    ctx.lineTo(pos.x - halfSize, pos.y - halfSize);
-    ctx.lineTo(pos.x - quarterSize, pos.y - halfSize);
-    ctx.lineTo(pos.x - quarterSize, pos.y);
-    ctx.lineTo(pos.x, pos.y - quarterSize);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.lineTo(pos.x + quarterSize, pos.y - quarterSize);
-    ctx.lineTo(pos.x + quarterSize, pos.y);
-    ctx.lineTo(pos.x + halfSize, pos.y - quarterSize);
-    ctx.lineTo(pos.x + halfSize, pos.y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.strokeStyle = batteryColors[this.batteryType];
-    ctx.lineWidth = 1;
     cities.forEach((city) => {
       if (city.getBatteryType() === this.batteryType && this.position.getDistanceFrom(city.getPosition()) <= this.range) {
+        ctx.beginPath();
+        ctx.strokeStyle = batteryColors[this.batteryType];
+        ctx.lineWidth = 1;
         const cityPos = city.getPosition().getZoomCorrected();
         ctx.moveTo(pos.x, pos.y);
         ctx.lineTo(cityPos.x, cityPos.y);
@@ -143,6 +140,7 @@ class Factory {
         ctx.stroke();
       }
     });
+    ctx.drawImage(resources.factories[batteryColors[this.batteryType]] as HTMLImageElement, pos.x - halfSize, pos.y - halfSize, size, size);
   }
 
   public drawRing() {
@@ -181,6 +179,21 @@ factories.push(new Factory(1, new Vec2(-25, 0), 'blue'));*/
 cities.push(new City(0, new Vec2(400, 300), 'red'));
 cities.push(new City(1, new Vec2(800, 600), 'blue'));
 cities.push(new City(2, new Vec2(1200, 300), 'yellow'));
+
+async function loadResources() {
+  batteryColors.forEach(async (color) => {
+    const factoryImg = await getImage(`imgs/assets/factories/${color}.svg`);
+    resources.factories[color] = factoryImg;
+    const cityImg = await getImage(`imgs/assets/cities/${color}.svg`);
+    resources.cities[color] = cityImg;
+  });
+}
+
+async function getImage(src: string) {
+  const img = new Image();
+  img.src = `data:image/svg+xml;base64,${btoa(await (await fetch(src)).text())}`;
+  return img;
+}
 
 function render() {
   ctx.clearRect(0, 0, gameElem.width, gameElem.height);
@@ -275,10 +288,19 @@ gameElem.addEventListener('click', (event) => {
 
 buildFactoryButtons.forEach((button) => {
   button.addEventListener('click', () => {
-    const clicked = Number(button.dataset.factory) as battery;
+    const clicked = Number(button.dataset.factory) as Battery;
     selectedFactory = clicked === selectedFactory ? -1 : clicked;
     updateUI();
   });
 });
 
-render();
+loadResources();
+
+function waitForResources(callback: Function) {
+  setTimeout(() => {
+    if (Object.values(resources.factories).some((factory) => !factory) || Object.values(resources.cities).some((city) => !city)) waitForResources(callback);
+    else callback();
+  }, 100);
+}
+
+waitForResources(render);

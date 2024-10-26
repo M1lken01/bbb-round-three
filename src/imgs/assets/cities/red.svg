@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+<svg width="1e3" height="1e3" version="1.1" viewBox="0 0 265 265" xmlns="http://www.w3.org/2000/svg">
+ <g stroke="#fff">
+  <g fill="#e51a1a">
+   <rect x="16.7" y="139" width="70.7" height="70.7" stroke-width="6.61" style="paint-order:stroke markers fill"/>
+   <path transform="matrix(.788 0 0 .505 12.7 107)" d="m100 65-101-0.178 50.6-87.3 25.2 43.7z" stroke-width="10.5" style="paint-order:stroke markers fill"/>
+   <rect x="182" y="149" width="61.4" height="61.4" stroke-width="6.61" style="paint-order:stroke markers fill"/>
+   <path transform="matrix(.684 0 0 .439 179 120)" d="m100 65-101-0.178 50.6-87.3 25.2 43.7z" stroke-width="12.1" style="paint-order:stroke markers fill"/>
+   <rect x="79.4" y="106" width="106" height="106" stroke-width="6.61" style="paint-order:stroke markers fill"/>
+   <path transform="matrix(1.18 0 0 .756 73.3 57.2)" d="m100 65-101-0.178 50.6-87.3 25.2 43.7z" stroke-width="7" style="paint-order:stroke markers fill"/>
+  </g>
+  <circle cx="132" cy="165" r="26.2" fill="#fff" stroke-width="13.7" style="paint-order:stroke markers fill"/>
+ </g>
+</svg>
