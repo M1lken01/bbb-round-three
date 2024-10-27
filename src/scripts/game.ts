@@ -35,6 +35,10 @@ class Vec2 {
     return { x: this.x, y: this.y };
   }
 
+  toString() {
+    return JSON.stringify(this.get());
+  }
+
   getAsTuple(): [number, number] {
     return [this.x, this.y];
   }
@@ -191,6 +195,9 @@ class Game {
       this.factories.push(new Factory(battery, location));
       this.storage[battery]--;
     }
+
+    console.log(`is every city supplied ${this.cities.every((city) => city.isSupplied())}`);
+    //! add check if the current task is done
   }
 
   getMapSize() {
@@ -250,7 +257,7 @@ class City {
   private batteryType: BatteryType;
   private position: Vec2;
   private size = 25;
-  private isSupplied: boolean = false;
+  private supplied: boolean = false;
 
   constructor(batteryType: BatteryType, position: Vec2 = new Vec2()) {
     this.batteryType = batteryType;
@@ -277,6 +284,14 @@ class City {
   public getPosition(): Vec2 {
     return this.position;
   }
+
+  public supply() {
+    this.supplied = true;
+  }
+
+  public isSupplied() {
+    return this.supplied;
+  }
 }
 
 class Factory {
@@ -288,6 +303,7 @@ class Factory {
   constructor(batteryType: BatteryType, position: Vec2 = new Vec2()) {
     this.batteryType = batteryType;
     this.position = position;
+    game.getCitiesInRange(this.position, this.range, this.batteryType).forEach((city) => city.supply());
   }
 
   public draw() {
@@ -295,14 +311,12 @@ class Factory {
     const battery = getBatteryDataById(this.batteryType);
     ctx.strokeStyle = battery.color;
     ctx.lineWidth = 2;
-    game.getCities().forEach((city) => {
-      if (city.getBatteryType() === this.batteryType && this.position.getDistanceFrom(city.getPosition()) <= this.range) {
-        ctx.beginPath();
-        ctx.moveTo(...this.position.getZoomCorrected().getAsTuple());
-        ctx.lineTo(...city.getPosition().getZoomCorrected().getAsTuple());
-        ctx.closePath();
-        ctx.stroke();
-      }
+    game.getCitiesInRange(this.position, this.range, this.batteryType).forEach((city) => {
+      ctx.beginPath();
+      ctx.moveTo(...this.position.getZoomCorrected().getAsTuple());
+      ctx.lineTo(...city.getPosition().getZoomCorrected().getAsTuple());
+      ctx.closePath();
+      ctx.stroke();
     });
     ctx.drawImage(
       battery.factoryImg ?? toImage(battery.factorySrc),
