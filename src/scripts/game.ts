@@ -8,15 +8,11 @@ interface BatteryData {
   id: BatteryType;
   name: string;
   color: string;
-  factory?: HTMLImageElement;
-  city?: HTMLImageElement;
+  factorySrc: string;
+  citySrc: string;
+  factoryImg?: HTMLImageElement;
+  cityImg?: HTMLImageElement;
 }
-
-const batteryData: BatteryData[] = [
-  { id: 0, name: 'red', color: '#e51a1a' },
-  { id: 1, name: 'blue', color: '#3f20df' },
-  { id: 2, name: 'green', color: '#6abf40' },
-];
 
 class Vec2 {
   private x: number;
@@ -254,7 +250,7 @@ class City {
   private batteryType: BatteryType;
   private position: Vec2;
   private size = 25;
-  private hasAFactory: boolean = false;
+  private isSupplied: boolean = false;
 
   constructor(batteryType: BatteryType, position: Vec2 = new Vec2()) {
     this.batteryType = batteryType;
@@ -264,7 +260,7 @@ class City {
   public draw() {
     const size = this.size * game.getZoom();
     ctx.drawImage(
-      getBatteryDataById(this.batteryType).city as HTMLImageElement,
+      getBatteryDataById(this.batteryType).cityImg ?? toImage(getBatteryDataById(this.batteryType).citySrc),
       ...this.position
         .getZoomCorrected()
         .subtract(size / 2)
@@ -309,7 +305,7 @@ class Factory {
       }
     });
     ctx.drawImage(
-      battery.factory as HTMLImageElement,
+      battery.factoryImg ?? toImage(battery.factorySrc),
       ...this.position
         .getZoomCorrected()
         .subtract(size / 2)
@@ -344,21 +340,31 @@ class Circle {
   }
 }
 
-async function loadResources() {
+function loadResources() {
+  batteryData.map((battery) => {
+    battery.factoryImg = toImage(battery.factorySrc);
+    battery.cityImg = toImage(battery.citySrc);
+  });
+}
+
+//! this function only has to be used when there are resource changes
+async function bakeResources() {
   await Promise.all(
     batteryData.map(async (battery) => {
-      const factoryImg = await getImage(`imgs/assets/factories/${battery.name}.svg`);
-      battery.factory = factoryImg;
-      const cityImg = await getImage(`imgs/assets/cities/${battery.name}.svg`);
-      battery.city = cityImg;
+      battery.factorySrc = await fetchImageData(`imgs/assets/factories/${battery.name}.svg`);
+      battery.citySrc = await fetchImageData(`imgs/assets/cities/${battery.name}.svg`);
     }),
   );
 }
 
-async function getImage(src: string) {
+function toImage(src: string): HTMLImageElement {
   const img = new Image();
-  img.src = `data:image/svg+xml;base64,${btoa(await (await fetch(src)).text())}`;
+  img.src = src;
   return img;
+}
+
+async function fetchImageData(src: string) {
+  return `data:image/svg+xml;base64,${btoa(await (await fetch(src)).text())}`;
 }
 
 function updateUI() {
@@ -368,7 +374,7 @@ function updateUI() {
     button.querySelectorAll('span')[1].innerText = inStorageCount.toString();
     if (inStorageCount === 0) button.disabled = true;
   });
-  if (game.getSelectedFactory()) document.querySelector(`button[data-factory="${game.getSelectedFactory()}"]`)!.classList.add('selected');
+  if (game.getSelectedFactory() !== undefined) document.querySelector(`button[data-factory="${game.getSelectedFactory()}"]`)!.classList.add('selected');
 }
 
 function getBatteryDataById(id: BatteryType) {
@@ -394,7 +400,7 @@ async function init() {
   game = new Game(new Vec2(1600, 900));
   gameElem.width = game.getMapSize().getX();
   gameElem.height = game.getMapSize().getY();
-  await loadResources();
+  loadResources();
   setupListeners();
   game.render();
 }

@@ -7,6 +7,7 @@
     <link rel="shortcut icon" href="./imgs/favicon.ico" type="image/x-icon" />
     <link rel="stylesheet" href="./styles/global.css" />
     <script src="./scripts/common.js" defer></script>
+    <script src="./scripts/resources.js" defer></script>
     <script src="./scripts/game.js" defer></script>
   </head>
   <body data-darkmode="false">
@@ -32,7 +33,7 @@
       </div>
       <div class="flex flex-col items-center justify-center gap-8 w-fit" id="game-container">
         <!--!hidden-->
-        <canvas id="game" class="border-8 border-solid w-max border-zinc-950"></canvas>
+        <canvas id="game" class="border-8 border-solid w-max bg-zinc-950 border-zinc-950"></canvas>
         <div id="controls" class="flex flex-col w-full gap-8">
           <div class="grid grid-cols-3 gap-4">
             <button id="factory-0" data-factory="0" class="factory-button">
