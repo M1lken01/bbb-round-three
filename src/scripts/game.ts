@@ -3,32 +3,44 @@ const ctx = gameElem.getContext('2d') as CanvasRenderingContext2D;
 const buildFactoryButtons = document.querySelectorAll('button.factory-button') as NodeListOf<HTMLButtonElement>;
 let game: Game;
 
-type Battery = 0 | 1 | 2;
-const batteryColors = ['red', 'blue', 'green'] as const;
-type BatteryColor = (typeof batteryColors)[number];
+type BatteryType = number;
+interface BatteryData {
+  id: BatteryType;
+  name: string;
+  color: string;
+  factory?: HTMLImageElement;
+  city?: HTMLImageElement;
+}
 
-type ShortVec2 = { x: number; y: number };
+const batteryData: BatteryData[] = [
+  { id: 0, name: 'red', color: '#e51a1a' },
+  { id: 1, name: 'blue', color: '#3f20df' },
+  { id: 2, name: 'green', color: '#6abf40' },
+];
+
 class Vec2 {
-  private v: ShortVec2;
+  private x: number;
+  private y: number;
 
   constructor(x: number = 0, y: number = 0) {
-    this.v = { x, y };
+    this.x = x;
+    this.y = y;
   }
 
   getX() {
-    return this.v.x;
+    return this.x;
   }
 
   getY() {
-    return this.v.y;
+    return this.y;
   }
 
   get() {
-    return this.v;
+    return { x: this.x, y: this.y };
   }
 
   getAsTuple(): [number, number] {
-    return [this.v.x, this.v.y];
+    return [this.x, this.y];
   }
 
   add(value: Vec2 | number): Vec2 {
@@ -41,12 +53,12 @@ class Vec2 {
     return new Vec2(this.getX() - value.getX(), this.getY() - value.getY());
   }
 
-  divide(scalar: number, vector = this.get()) {
-    return new Vec2(vector.x / scalar, vector.y / scalar);
+  divide(scalar: number) {
+    return new Vec2(this.x / scalar, this.y / scalar);
   }
 
-  multiply(scalar: number, vector = this.get()) {
-    return new Vec2(vector.x * scalar, vector.y * scalar);
+  multiply(scalar: number) {
+    return new Vec2(this.x * scalar, this.y * scalar);
   }
 
   getZoomCorrected() {
@@ -54,20 +66,25 @@ class Vec2 {
   }
 
   getDistanceFrom(other: Vec2) {
-    return Math.sqrt((other.getX() - this.v.x) ** 2 + (other.getY() - this.v.y) ** 2);
+    return Math.sqrt((other.getX() - this.x) ** 2 + (other.getY() - this.y) ** 2);
   }
 }
 
 class Game {
   private cities: City[] = [];
   private factories: Factory[] = [];
-  private selectedFactory: Battery | -1 = -1;
+  private selectedFactory?: BatteryType;
   private mousePos = new Vec2();
   private mapSize: Vec2;
   private zoom = 1;
   private pan: Vec2;
   private isDragging = false;
   private dragStart = new Vec2();
+  private storage: Record<BatteryType, number> = {
+    0: 1,
+    1: 1,
+    2: 1,
+  };
 
   constructor(mapSize: Vec2) {
     this.mapSize = mapSize;
@@ -89,8 +106,7 @@ class Game {
     ctx.strokeRect(0, 0, this.getMapWidth(), this.getMapHeight());
     this.drawGrid();
 
-    if (!this.isDragging && this.selectedFactory !== -1) {
-      new Circle(this.mousePos.getZoomCorrected(), 100 * this.zoom, '#bbb').draw();
+    if (!this.isDragging && this.selectedFactory !== undefined) {
       this.getCitiesInRange(this.mousePos, 100, this.selectedFactory).forEach((city) =>
         new Circle(city.getPosition().getZoomCorrected(), 15 * this.zoom, '#eee', true).draw(),
       );
@@ -133,10 +149,9 @@ class Game {
 
   handleClick(event: MouseEvent) {
     this.handleMouse(event);
-    if (this.selectedFactory !== -1) {
-      // ! add a check if a city or another factory is too close
-      this.factories.push(new Factory(this.selectedFactory, this.mousePos));
-      this.selectedFactory = -1;
+    if (this.selectedFactory !== undefined) {
+      this.buildFactory(this.selectedFactory, this.mousePos);
+      this.selectedFactory = undefined;
     }
     this.render();
     updateUI();
@@ -171,6 +186,14 @@ class Game {
       Math.min(0, Math.max(gameElem.width - this.getMapWidth(), vector.getX())),
       Math.min(0, Math.max(gameElem.height - this.getMapHeight(), vector.getY())),
     );
+  }
+
+  buildFactory(battery: BatteryType, location: Vec2) {
+    if (this.storage[battery] > 0) {
+      // ! add a check if a city or another factory is too close
+      this.factories.push(new Factory(battery, location));
+      this.storage[battery]--;
+    }
   }
 
   getMapSize() {
@@ -213,54 +236,44 @@ class Game {
     return this.selectedFactory;
   }
 
-  setSelectedFactory(value: Battery) {
-    this.selectedFactory = value === game.selectedFactory ? -1 : value;
+  setSelectedFactory(value: BatteryType) {
+    this.selectedFactory = value === game.selectedFactory ? undefined : value;
   }
 
-  getCitiesInRange(vector: Vec2, range: number, type: Battery) {
+  getCitiesInRange(vector: Vec2, range: number, type: BatteryType) {
     return game.getCities().filter((city) => city.getBatteryType() === type && vector.getDistanceFrom(city.getPosition()) <= range);
+  }
+
+  getStorage() {
+    return this.storage;
   }
 }
 
-type ImageCollection = {
-  [key in BatteryColor]: HTMLImageElement | undefined;
-};
-const resources: {
-  factories: ImageCollection;
-  cities: ImageCollection;
-} = {
-  factories: {
-    red: undefined,
-    blue: undefined,
-    green: undefined,
-  },
-  cities: {
-    red: undefined,
-    blue: undefined,
-    green: undefined,
-  },
-};
-
 class City {
-  private batteryType: Battery;
+  private batteryType: BatteryType;
   private position: Vec2;
   private size = 25;
+  private hasAFactory: boolean = false;
 
-  constructor(batteryType: Battery, position: Vec2 = new Vec2()) {
+  constructor(batteryType: BatteryType, position: Vec2 = new Vec2()) {
     this.batteryType = batteryType;
     this.position = position;
   }
 
   public draw() {
     const size = this.size * game.getZoom();
-    const pos = this.position
-      .getZoomCorrected()
-      .subtract(size / 2)
-      .get();
-    ctx.drawImage(resources.cities[batteryColors[this.batteryType]] as HTMLImageElement, pos.x, pos.y, size, size);
+    ctx.drawImage(
+      getBatteryDataById(this.batteryType).city as HTMLImageElement,
+      ...this.position
+        .getZoomCorrected()
+        .subtract(size / 2)
+        .getAsTuple(),
+      size,
+      size,
+    );
   }
 
-  public getBatteryType(): number {
+  public getBatteryType(): BatteryType {
     return this.batteryType;
   }
 
@@ -270,20 +283,21 @@ class City {
 }
 
 class Factory {
-  private batteryType: Battery;
+  private batteryType: BatteryType;
   private position: Vec2;
   private size = 25;
   private range = 100;
 
-  constructor(batteryType: Battery, position: Vec2 = new Vec2()) {
+  constructor(batteryType: BatteryType, position: Vec2 = new Vec2()) {
     this.batteryType = batteryType;
     this.position = position;
   }
 
   public draw() {
     const size = this.size * game.getZoom();
-    ctx.strokeStyle = batteryColors[this.batteryType];
-    ctx.lineWidth = 1;
+    const battery = getBatteryDataById(this.batteryType);
+    ctx.strokeStyle = battery.color;
+    ctx.lineWidth = 2;
     game.getCities().forEach((city) => {
       if (city.getBatteryType() === this.batteryType && this.position.getDistanceFrom(city.getPosition()) <= this.range) {
         ctx.beginPath();
@@ -294,7 +308,7 @@ class Factory {
       }
     });
     ctx.drawImage(
-      resources.factories[batteryColors[this.batteryType]] as HTMLImageElement,
+      battery.factory as HTMLImageElement,
       ...this.position
         .getZoomCorrected()
         .subtract(size / 2)
@@ -302,15 +316,6 @@ class Factory {
       size,
       size,
     );
-  }
-
-  public drawRing() {
-    ctx.strokeStyle = batteryColors[this.batteryType];
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(...this.position.getZoomCorrected().getAsTuple(), this.range * game.getZoom(), 0, Math.PI * 2);
-    ctx.closePath();
-    ctx.stroke();
   }
 }
 
@@ -339,19 +344,14 @@ class Circle {
 }
 
 async function loadResources() {
-  batteryColors.forEach(async (color) => {
-    const factoryImg = await getImage(`imgs/assets/factories/${color}.svg`);
-    resources.factories[color] = factoryImg;
-    const cityImg = await getImage(`imgs/assets/cities/${color}.svg`);
-    resources.cities[color] = cityImg;
-  });
-}
-
-function waitForResources(callback: Function) {
-  setTimeout(() => {
-    if (Object.values(resources.factories).some((factory) => !factory) || Object.values(resources.cities).some((city) => !city)) waitForResources(callback);
-    else callback();
-  }, 100);
+  await Promise.all(
+    batteryData.map(async (battery) => {
+      const factoryImg = await getImage(`imgs/assets/factories/${battery.name}.svg`);
+      battery.factory = factoryImg;
+      const cityImg = await getImage(`imgs/assets/cities/${battery.name}.svg`);
+      battery.city = cityImg;
+    }),
+  );
 }
 
 async function getImage(src: string) {
@@ -361,8 +361,17 @@ async function getImage(src: string) {
 }
 
 function updateUI() {
-  buildFactoryButtons.forEach((button) => button.classList.remove('selected'));
-  if (game.getSelectedFactory() !== -1) document.querySelector(`button[data-factory="${game.getSelectedFactory()}"]`)!.classList.add('selected');
+  buildFactoryButtons.forEach((button) => {
+    button.classList.remove('selected');
+    const inStorageCount = game.getStorage()[getBatteryDataById(Number(button.dataset.factory)).id];
+    button.querySelectorAll('span')[1].innerText = inStorageCount.toString();
+    if (inStorageCount === 0) button.disabled = true;
+  });
+  if (game.getSelectedFactory()) document.querySelector(`button[data-factory="${game.getSelectedFactory()}"]`)!.classList.add('selected');
+}
+
+function getBatteryDataById(id: BatteryType) {
+  return batteryData.find((battery) => battery.id === id)!;
 }
 
 function setupListeners() {
@@ -374,21 +383,19 @@ function setupListeners() {
   gameElem.addEventListener('click', (event) => game.handleClick(event));
   buildFactoryButtons.forEach((button) => {
     button.addEventListener('click', () => {
-      game.setSelectedFactory(Number(button.dataset.factory) as Battery);
+      game.setSelectedFactory(getBatteryDataById(Number(button.dataset.factory)).id);
       updateUI();
     });
   });
 }
 
-function init() {
+async function init() {
   game = new Game(new Vec2(1600, 900));
   gameElem.width = game.getMapSize().getX();
   gameElem.height = game.getMapSize().getY();
-  loadResources();
-  waitForResources(() => {
-    setupListeners();
-    game.render();
-  });
+  await loadResources();
+  setupListeners();
+  game.render();
 }
 
 init();
