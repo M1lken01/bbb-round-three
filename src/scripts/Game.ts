@@ -2,25 +2,25 @@ class Game {
   private cities: City[] = [];
   private factories: Factory[] = [];
   private selectedFactory?: BatteryType;
+  private hoveredFactory?: Factory;
   private mousePos = new Vec2();
   private mapSize: Vec2;
   private zoom = 1;
   private pan: Vec2;
   private isDragging = false;
   private dragStart = new Vec2();
+  private task: Task;
   private storage: Record<BatteryType, number> = {
     0: 1,
     1: 1,
     2: 1,
   };
 
-  constructor(mapSize: Vec2) {
+  constructor(mapSize: Vec2, task: Task) {
+    this.task = task;
     this.mapSize = mapSize;
     this.pan = this.mapSize.subtract(this.getMapAsVector()).divide(2);
-    //! move to quests \/
-    this.addCity(new City(0, new Vec2(400, 300)));
-    this.addCity(new City(1, new Vec2(800, 600)));
-    this.addCity(new City(2, new Vec2(1200, 300)));
+    task.cities.forEach((city) => this.addCity(city));
   }
 
   render() {
@@ -34,16 +34,23 @@ class Game {
     ctx.strokeRect(0, 0, this.getMapWidth(), this.getMapHeight());
     this.drawGrid();
 
-    if (!this.isDragging && this.selectedFactory !== undefined) {
-      drawCircle(this.mousePos.getZoomCorrected(), 100 * this.zoom, '#bbb');
-      this.getCitiesInRange(this.mousePos, 100, this.selectedFactory).forEach((city) =>
-        drawCircle(city.getPosition().getZoomCorrected(), 15 * this.zoom, '#eee', true),
-      );
+    if (!this.isDragging) {
+      if (this.selectedFactory !== undefined) {
+        drawCircle(this.mousePos.getZoomCorrected(), 100 * this.zoom, '#bbb');
+        this.getCitiesInRange(this.mousePos, 100, this.selectedFactory).forEach((city) =>
+          drawCircle(city.getPosition().getZoomCorrected(), 15 * this.zoom, '#eee', true),
+        );
+      } else {
+        const closestFactory = this.getFactoriesInRange(this.mousePos, 25)[0];
+        this.hoveredFactory = closestFactory;
+        if (closestFactory) drawCircle(closestFactory.getPosition().getZoomCorrected(), 15 * this.zoom, '#f55', true); //! get the closest instead of the 0.th
+      }
     }
 
     this.factories.forEach((obj) => obj.draw());
     this.cities.forEach((obj) => obj.draw());
     ctx.restore();
+    requestAnimationFrame(() => this.render());
   }
 
   private drawGrid() {
@@ -73,7 +80,6 @@ class Game {
     this.zoom = Math.max(1, Math.min(5, Math.round((this.zoom - Math.sign(event.deltaY) * 0.25) * 4) / 4));
     const mouse = this.getPosFromMouse(event);
     this.setPan(mouse.subtract(mouse.subtract(this.pan).divide(oldZoom).multiply(this.zoom)));
-    this.render();
   }
 
   handleClick(event: MouseEvent) {
@@ -81,8 +87,16 @@ class Game {
     if (this.selectedFactory !== undefined) {
       this.buildFactory(this.selectedFactory, this.mousePos);
       this.selectedFactory = undefined;
+    } else if (this.hoveredFactory !== undefined) {
+      if (confirm('demolish factory?')) {
+        const idx = this.getFactoryIdxById(this.hoveredFactory.getId());
+        if (idx >= 0 && idx < this.factories.length) {
+          this.factories.splice(idx, 1);
+          this.storage[this.hoveredFactory.getType()]++;
+          this.hoveredFactory = undefined;
+        }
+      }
     }
-    this.render();
     updateUI();
   }
 
@@ -94,7 +108,6 @@ class Game {
   handleMouseMove(event: MouseEvent) {
     this.handleMouse(event);
     if (this.isDragging) this.setPan(new Vec2(event.clientX, event.clientY).subtract(this.dragStart));
-    this.render();
   }
 
   stopDragging() {
@@ -174,6 +187,14 @@ class Game {
 
   getCitiesInRange(vector: Vec2, range: number, type: BatteryType) {
     return game.getCities().filter((city) => city.getBatteryType() === type && vector.getDistanceFrom(city.getPosition()) <= range);
+  }
+
+  getFactoriesInRange(vector: Vec2, range: number) {
+    return game.getFactories().filter((factory) => vector.getDistanceFrom(factory.getPosition()) <= range);
+  }
+
+  getFactoryIdxById(id: string) {
+    return game.getFactories().findIndex((factory) => factory.getId() === id);
   }
 
   getStorage() {

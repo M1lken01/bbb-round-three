@@ -1,10 +1,12 @@
 class Factory {
+  private id: string;
   private batteryType: BatteryType;
   private position: Vec2;
   private size = 25;
   private range = 100;
 
   constructor(batteryType: BatteryType, position: Vec2 = new Vec2()) {
+    this.id = randomID();
     this.batteryType = batteryType;
     this.position = position;
     game.getCitiesInRange(this.position, this.range, this.batteryType).forEach((city) => city.supply());
@@ -31,5 +33,17 @@ class Factory {
       size,
       size,
     );
+  }
+
+  public getId(): string {
+    return this.id;
+  }
+
+  public getType(): BatteryType {
+    return this.batteryType;
+  }
+
+  public getPosition(): Vec2 {
+    return this.position;
   }
 }

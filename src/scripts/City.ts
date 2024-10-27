@@ -2,24 +2,23 @@ class City {
   private batteryType: BatteryType;
   private position: Vec2;
   private size = 25;
+  private name: string;
   private supplied: boolean = false;
 
-  constructor(batteryType: BatteryType, position: Vec2 = new Vec2()) {
+  constructor(batteryType: BatteryType, position: Vec2 = new Vec2(), name: string = 'City') {
     this.batteryType = batteryType;
     this.position = position;
+    this.name = name;
   }
 
   public draw() {
     const size = this.size * game.getZoom();
-    ctx.drawImage(
-      getBatteryDataById(this.batteryType).cityImg ?? toImage(getBatteryDataById(this.batteryType).citySrc),
-      ...this.position
-        .getZoomCorrected()
-        .subtract(size / 2)
-        .getAsTuple(),
-      size,
-      size,
-    );
+    const pos = this.position.getZoomCorrected().subtract(size / 2);
+    ctx.drawImage(getBatteryDataById(this.batteryType).cityImg ?? toImage(getBatteryDataById(this.batteryType).citySrc), ...pos.getAsTuple(), size, size);
+    ctx.font = `${16 * Math.max(1, game.getZoom() / 2)}px Helvetica`;
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.fillText(this.name, pos.getX() + size / 2, pos.getY() + size * 1.5);
   }
 
   public getBatteryType(): BatteryType {
