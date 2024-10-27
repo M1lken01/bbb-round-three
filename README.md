@@ -2,7 +2,6 @@
 
 ## todos
 
-- factory demolitions
 - task selections
   - tasks
 - main menu
