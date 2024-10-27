@@ -107,6 +107,7 @@ class Game {
     this.drawGrid();
 
     if (!this.isDragging && this.selectedFactory !== undefined) {
+      new Circle(this.mousePos.getZoomCorrected(), 100 * this.zoom, '#bbb').draw();
       this.getCitiesInRange(this.mousePos, 100, this.selectedFactory).forEach((city) =>
         new Circle(city.getPosition().getZoomCorrected(), 15 * this.zoom, '#eee', true).draw(),
       );
