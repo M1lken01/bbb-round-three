@@ -36,4 +36,8 @@ class City {
   public isSupplied() {
     return this.supplied;
   }
+
+  public copy() {
+    return new City(this.batteryType, this.position, this.name);
+  }
 }

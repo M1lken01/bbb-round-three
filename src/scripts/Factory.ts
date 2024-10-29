@@ -6,7 +6,7 @@ class Factory {
   private range = 100;
 
   constructor(batteryType: BatteryType, position: Vec2 = new Vec2()) {
-    this.id = randomID();
+    this.id = randomId();
     this.batteryType = batteryType;
     this.position = position;
     game.getCitiesInRange(this.position, this.range, this.batteryType).forEach((city) => city.supply());

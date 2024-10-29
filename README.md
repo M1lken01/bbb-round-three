@@ -2,6 +2,5 @@
 
 ## todos
 
-- task selections
-  - tasks
-- main menu
+- add remaining tasks
+- make game canvas responsive

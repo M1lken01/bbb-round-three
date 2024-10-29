@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Játék</title>
+    <title>Energrid</title>
     <link rel="shortcut icon" href="./imgs/favicon.ico" type="image/x-icon" />
     <link rel="stylesheet" href="./styles/global.css" />
     <script src="./scripts/common.js" defer></script>
@@ -16,25 +16,55 @@
   </head>
   <body data-darkmode="false">
     <header class="flex text-white bg-zinc-900">
-      <a class="p-8 hover:text-zinc-400" href="index.html">Game</a>
+      <a class="p-8 hover:text-zinc-400" href="index.html">Energrid</a>
     </header>
     <div class="flex flex-col items-center flex-1 m-8">
       <div id="menu-container" class="flex flex-col items-center justify-center flex-1 w-full text-center md:mt-[20svh]">
         <div class="grid flex-1 w-full grid-cols-1 gap-4 md:grid-cols-3">
           <div class="flex flex-col items-center justify-start gap-16 md:mt-8">
             <h2 class="text-5xl font-bold">Gyorstalpaló</h2>
-            <p class="text-2xl text-justify">desc</p>
+            <p class="text-2xl text-justify">
+              A feladat választását követően a megfelelő mennyiségű különböző gyárakat (piros kör, kék négyzet, zöld háromszög) kell elhelyezned az azonos színű
+              városok környezetében, megfelelő távolságra. A feladat sikeres teljesítése új pályákhoz és lehetőségekhez vezet!<br />
+              Az térkép nagyításához görgessen a görgővel, míg az egérrel húzva mozgatja a térképet. Válasszon ki egy gyárat, majd kattintson a térképre a
+              megépítéséhez. Ha egy gyárat szeretne lebontani, kattintson rá a térképen.
+            </p>
           </div>
           <div class="flex flex-col items-center justify-start gap-16">
-            <h1 class="text-6xl font-bold">Game</h1>
-            <div class="flex flex-col gap-4">
+            <h1 class="text-6xl font-bold">Energrid</h1>
+            <div class="flex flex-col w-full gap-4 max-w-[512px]">
               <h2>Select a task</h2>
               <div id="tasks" class="grid grid-cols-4 grid-rows-3 gap-2"></div>
             </div>
           </div>
           <div class="flex flex-col items-center justify-start gap-16 md:mt-8">
-            <h2 class="text-5xl font-bold">sidepanel</h2>
-            <div class="grid"></div>
+            <h2 class="text-5xl font-bold">Legend</h2>
+            <div class="grid grid-cols-3 grid-rows-2 gap-x-16 gap-y-24">
+              <div class="flex flex-col items-center justify-start">
+                <img src="imgs/assets/cities/red.svg" alt="red circle city" class="w-32 h-32" />
+                <h3>red circle city</h3>
+              </div>
+              <div class="flex flex-col items-center justify-start">
+                <img src="imgs/assets/cities/blue.svg" alt="blue square city" class="w-32 h-32" />
+                <h3>blue square city</h3>
+              </div>
+              <div class="flex flex-col items-center justify-start">
+                <img src="imgs/assets/cities/green.svg" alt="green triangle city" class="w-32 h-32" />
+                <h3>green triangle city</h3>
+              </div>
+              <div class="flex flex-col items-center justify-start">
+                <img src="imgs/assets/factories/red.svg" alt="red circle factory" class="w-32 h-32" />
+                <h3>red circle factory</h3>
+              </div>
+              <div class="flex flex-col items-center justify-start">
+                <img src="imgs/assets/factories/blue.svg" alt="blue square factory" class="w-32 h-32" />
+                <h3>blue square factory</h3>
+              </div>
+              <div class="flex flex-col items-center justify-start">
+                <img src="imgs/assets/factories/green.svg" alt="green triangle factory" class="w-32 h-32" />
+                <h3>green triangle factory</h3>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -66,8 +96,8 @@
             </p>
           </div>
           <div id="controls" class="flex justify-between text-4xl">
-            <button class="button" onclick="back()">Back</button>
-            <button class="button" onclick="restart()">Restart</button>
+            <button class="button" id="back">Back</button>
+            <button class="button" id="restart-or-next">Restart</button>
           </div>
         </div>
       </div>

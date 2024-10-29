@@ -1,4 +1,6 @@
 class Game {
+  private debug = false;
+  private taskBuilder: City[] = [];
   private cities: City[] = [];
   private factories: Factory[] = [];
   private selectedFactory?: BatteryType;
@@ -20,7 +22,7 @@ class Game {
     this.storage = JSON.parse(JSON.stringify(this.task.storage));
     this.mapSize = mapSize;
     this.pan = this.mapSize.subtract(this.getMapAsVector()).divide(2);
-    this.task.cities.forEach((city) => this.addCity(city));
+    this.task.cities.forEach((city) => this.addCity(city.copy()));
   }
 
   render() {
@@ -49,6 +51,7 @@ class Game {
 
     this.factories.forEach((obj) => obj.draw());
     this.cities.forEach((obj) => obj.draw());
+    if (this.debug) this.taskBuilder.forEach((city) => city.draw());
     ctx.restore();
     requestAnimationFrame(() => this.render());
   }
@@ -84,6 +87,10 @@ class Game {
 
   handleClick(event: MouseEvent) {
     this.handleMouse(event);
+    if (this.debug) {
+      const type = prompt('enter type (0:red,1:blue,2:green)');
+      if (type !== null && type !== '' && Number(type) >= 0 && Number(type) <= 2) this.taskBuilder.push(new City(Number(type), this.mousePos));
+    }
     if (this.selectedFactory !== undefined) {
       if (this.buildFactory(this.selectedFactory, this.mousePos)) this.selectedFactory = undefined;
     } else if (this.hoveredFactory !== undefined) {
@@ -215,5 +222,17 @@ class Game {
 
   getTaskIdx() {
     return this.taskIdx;
+  }
+
+  getTaskBuilder() {
+    return this.taskBuilder.map((city) => `new City(${city.getBatteryType()}, new Vec2(${city.getPosition().getX()}, ${city.getPosition().getY()}))`);
+  }
+
+  setDebug(value: boolean) {
+    this.debug = value;
+  }
+
+  toggleDebug() {
+    this.debug = !this.debug;
   }
 }

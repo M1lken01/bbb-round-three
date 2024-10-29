@@ -105,6 +105,10 @@ footer img {
   @apply bg-zinc-900;
 }
 
+#tasks button {
+  @apply text-lg xl:text-2xl aspect-square;
+}
+
 @keyframes gradient-animation {
   0% {
     background-position: 200% 50%;
