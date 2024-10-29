@@ -19,7 +19,7 @@
       <a class="p-8 hover:text-zinc-400" href="index.html">Game</a>
     </header>
     <div class="flex flex-col items-center flex-1 m-8">
-      <div class="!hidden flex flex-col items-center justify-center flex-1 w-full text-center md:mt-[20svh]" id="menu-container">
+      <div id="menu-container" class="flex flex-col items-center justify-center flex-1 w-full text-center md:mt-[20svh]">
         <div class="grid flex-1 w-full grid-cols-1 gap-4 md:grid-cols-3">
           <div class="flex flex-col items-center justify-start gap-16 md:mt-8">
             <h2 class="text-5xl font-bold">Gyorstalpaló</h2>
@@ -27,7 +27,10 @@
           </div>
           <div class="flex flex-col items-center justify-start gap-16">
             <h1 class="text-6xl font-bold">Game</h1>
-            <button class="text-3xl button" id="start">Start</button>
+            <div class="flex flex-col gap-4">
+              <h2>Select a task</h2>
+              <div id="tasks" class="grid grid-cols-4 grid-rows-3 gap-2"></div>
+            </div>
           </div>
           <div class="flex flex-col items-center justify-start gap-16 md:mt-8">
             <h2 class="text-5xl font-bold">sidepanel</h2>
@@ -35,22 +38,21 @@
           </div>
         </div>
       </div>
-      <div class="flex flex-col items-center justify-center gap-8 w-fit" id="game-container">
-        <!--!hidden-->
+      <div id="game-container" class="!hidden flex flex-col items-center justify-center gap-8 w-fit">
         <canvas id="game" class="border-8 border-solid w-max bg-zinc-950 border-zinc-950"></canvas>
         <div id="controls" class="flex flex-col w-full gap-8">
           <div class="grid grid-cols-3 gap-4">
-            <button id="factory-0" data-factory="0" class="factory-button">
+            <button id="factory-0" data-factory="0" class="factory-button gray-button">
               <img src="imgs/assets/factories/red.svg" alt="factory" />
               <span>Red Circle Factory</span>
               <span>1</span>
             </button>
-            <button id="factory-1" data-factory="1" class="factory-button">
+            <button id="factory-1" data-factory="1" class="factory-button gray-button">
               <img src="imgs/assets/factories/blue.svg" alt="factory" />
               <span>Blue Square Factory</span>
               <span>1</span>
             </button>
-            <button id="factory-2" data-factory="2" class="factory-button">
+            <button id="factory-2" data-factory="2" class="factory-button gray-button">
               <img src="imgs/assets/factories/green.svg" alt="factory" />
               <span>Green Triangle Factory</span>
               <span>1</span>

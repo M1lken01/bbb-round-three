@@ -9,6 +9,7 @@ class Game {
   private pan: Vec2;
   private isDragging = false;
   private dragStart = new Vec2();
+  private taskIdx: number;
   private task: Task;
   private buildingSize = 25;
   private storage: Record<BatteryType, number> = {
@@ -17,8 +18,9 @@ class Game {
     2: 1,
   };
 
-  constructor(mapSize: Vec2, task: Task) {
-    this.task = task;
+  constructor(mapSize: Vec2, taskIdx: number) {
+    this.taskIdx = taskIdx;
+    this.task = tasks[taskIdx];
     this.mapSize = mapSize;
     this.pan = this.mapSize.subtract(this.getMapAsVector()).divide(2);
     this.task.cities.forEach((city) => this.addCity(city));
@@ -138,10 +140,16 @@ class Game {
     if (canBuild && build) {
       this.factories.push(new Factory(battery, location));
       this.storage[battery]--;
-      console.log(`is every city supplied ${this.cities.every((city) => city.isSupplied())}`);
-      //! add check if the current task is done
+      if (this.isTaskComplete()) {
+        alert('task completed');
+        setUnlockedTasks([...getUnlockedTasks(), getUnlockedTasks().reverse()[0] + 1]);
+      }
     }
     return canBuild;
+  }
+
+  isTaskComplete() {
+    return this.cities.every((city) => city.isSupplied());
   }
 
   getMapSize() {
@@ -202,5 +210,9 @@ class Game {
 
   getStorage() {
     return this.storage;
+  }
+
+  getTask() {
+    return this.task;
   }
 }

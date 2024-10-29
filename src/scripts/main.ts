@@ -1,7 +1,11 @@
+const setUnlockedTasks = (value: number[] = [0]) => localStorage.setItem('unlocked_tasks', JSON.stringify(value));
+const getUnlockedTasks = (): number[] => JSON.parse(localStorage.getItem('unlocked_tasks') ?? '[]');
+if (getUnlockedTasks() === null) setUnlockedTasks();
 const gameElem = document.querySelector('canvas#game') as HTMLCanvasElement;
 const ctx = gameElem.getContext('2d') as CanvasRenderingContext2D;
 const buildFactoryButtons = document.querySelectorAll('button.factory-button') as NodeListOf<HTMLButtonElement>;
 const taskInfoDiv = document.querySelector('div#task') as HTMLDivElement;
+const taskListDiv = document.querySelector('div#tasks') as HTMLDivElement;
 let game: Game;
 
 type BatteryType = number;
@@ -18,8 +22,18 @@ interface BatteryData {
 type Task = { title: string; description: string; cities: City[] };
 const tasks: Task[] = [
   { title: 'tutorial', description: 'lorem', cities: [new City(0, new Vec2(373, 296)), new City(1, new Vec2(768, 469)), new City(2, new Vec2(1231, 372))] },
+  { title: 'task', description: '', cities: [] },
+  { title: 'task', description: '', cities: [] },
+  { title: 'task', description: '', cities: [] },
+  { title: 'task', description: '', cities: [] },
+  { title: 'task', description: '', cities: [] },
+  { title: 'task', description: '', cities: [] },
+  { title: 'task', description: '', cities: [] },
+  { title: 'task', description: '', cities: [] },
+  { title: 'task', description: '', cities: [] },
+  { title: 'task', description: '', cities: [] },
+  { title: 'task', description: '', cities: [] },
 ];
-const selectedTask = 0;
 
 function drawCircle(position: Vec2 = new Vec2(), radius: number = 5, color: string | CanvasGradient = '#000', filled: boolean = false) {
   ctx.beginPath();
@@ -70,9 +84,9 @@ function updateUI() {
     button.disabled = inStorageCount === 0;
   });
   if (game.getSelectedFactory() !== undefined) document.querySelector(`button[data-factory="${game.getSelectedFactory()}"]`)!.classList.add('selected');
-
-  taskInfoDiv.querySelector('h2')!.innerText = tasks[selectedTask].title;
-  taskInfoDiv.querySelector('p')!.innerText = tasks[selectedTask].description;
+  const task = game.getTask();
+  taskInfoDiv.querySelector('h2')!.innerText = task.title;
+  taskInfoDiv.querySelector('p')!.innerText = task.description;
 }
 
 function getBatteryDataById(id: BatteryType) {
@@ -94,14 +108,31 @@ function setupListeners() {
   });
 }
 
-async function init() {
-  game = new Game(new Vec2(1600, 900), tasks[selectedTask]);
+function startTask(idx: number) {
+  game = new Game(new Vec2(1600, 900), idx);
   gameElem.width = game.getMapSize().getX();
   gameElem.height = game.getMapSize().getY();
-  loadResources();
-  setupListeners();
   game.render();
   updateUI();
+}
+
+async function init() {
+  const unlockedTasks = getUnlockedTasks();
+  for (let i = 0; i < tasks.length; i++) {
+    const button = document.createElement('button');
+    button.classList.add('gray-button');
+    button.innerText = tasks[i].title;
+    if (unlockedTasks.includes(i))
+      button.addEventListener('click', () => {
+        document.querySelector('div#menu-container')!.classList.add('!hidden');
+        document.querySelector('div#game-container')!.classList.remove('!hidden');
+        startTask(i);
+      });
+    else button.disabled = true;
+    taskListDiv.appendChild(button);
+  }
+  loadResources();
+  setupListeners();
 }
 
 init();
