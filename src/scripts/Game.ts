@@ -9,18 +9,13 @@ class Game {
   private pan: Vec2;
   private isDragging = false;
   private dragStart = new Vec2();
-  private taskIdx: number;
   private task: Task;
   private buildingSize = 25;
-  private storage: Record<BatteryType, number> = {
-    0: 1,
-    1: 1,
-    2: 1,
-  };
+  private storage: FactoryStorage;
 
   constructor(mapSize: Vec2, taskIdx: number) {
-    this.taskIdx = taskIdx;
     this.task = tasks[taskIdx];
+    this.storage = JSON.parse(JSON.stringify(this.task.storage));
     this.mapSize = mapSize;
     this.pan = this.mapSize.subtract(this.getMapAsVector()).divide(2);
     this.task.cities.forEach((city) => this.addCity(city));

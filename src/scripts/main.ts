@@ -18,21 +18,31 @@ interface BatteryData {
   factoryImg?: HTMLImageElement;
   cityImg?: HTMLImageElement;
 }
+type FactoryStorage = Record<BatteryType, number>;
 
-type Task = { title: string; description: string; cities: City[] };
+type Task = { title: string; description: string; cities: City[]; storage: FactoryStorage };
 const tasks: Task[] = [
-  { title: 'tutorial', description: 'lorem', cities: [new City(0, new Vec2(373, 296)), new City(1, new Vec2(768, 469)), new City(2, new Vec2(1231, 372))] },
-  { title: 'task', description: '', cities: [] },
-  { title: 'task', description: '', cities: [] },
-  { title: 'task', description: '', cities: [] },
-  { title: 'task', description: '', cities: [] },
-  { title: 'task', description: '', cities: [] },
-  { title: 'task', description: '', cities: [] },
-  { title: 'task', description: '', cities: [] },
-  { title: 'task', description: '', cities: [] },
-  { title: 'task', description: '', cities: [] },
-  { title: 'task', description: '', cities: [] },
-  { title: 'task', description: '', cities: [] },
+  {
+    title: 'tutorial',
+    description: 'lorem',
+    cities: [new City(0, new Vec2(373, 296)), new City(1, new Vec2(768, 469)), new City(2, new Vec2(1231, 372))],
+    storage: {
+      0: 1,
+      1: 1,
+      2: 1,
+    },
+  },
+  { title: 'task', description: '', cities: [], storage: { 0: 2, 1: 2, 2: 2 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
 ];
 
 function drawCircle(position: Vec2 = new Vec2(), radius: number = 5, color: string | CanvasGradient = '#000', filled: boolean = false) {
