@@ -5,6 +5,8 @@ const gameElem = document.querySelector('canvas#game') as HTMLCanvasElement;
 const ctx = gameElem.getContext('2d') as CanvasRenderingContext2D;
 const buildFactoryButtons = document.querySelectorAll('button.factory-button') as NodeListOf<HTMLButtonElement>;
 const taskInfoDiv = document.querySelector('div#task') as HTMLDivElement;
+const taskInfoTitle = taskInfoDiv.querySelector('h2') as HTMLHeadingElement;
+const taskInfoDesc = taskInfoDiv.querySelector('p') as HTMLParagraphElement;
 const taskListDiv = document.querySelector('div#tasks') as HTMLDivElement;
 let game: Game;
 
@@ -23,7 +25,7 @@ type FactoryStorage = Record<BatteryType, number>;
 type Task = { title: string; description: string; cities: City[]; storage: FactoryStorage };
 const tasks: Task[] = [
   {
-    title: 'tutorial',
+    title: 'Tutorial',
     description: 'lorem',
     cities: [new City(0, new Vec2(373, 296)), new City(1, new Vec2(768, 469)), new City(2, new Vec2(1231, 372))],
     storage: {
@@ -42,7 +44,7 @@ const tasks: Task[] = [
   { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
   { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
   { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
-  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'M&M', description: 'This level is unachievable without cheating.', cities: [], storage: { 0: 0, 1: 0, 2: 0, 69: 1 } },
 ];
 
 function drawCircle(position: Vec2 = new Vec2(), radius: number = 5, color: string | CanvasGradient = '#000', filled: boolean = false) {
@@ -95,8 +97,13 @@ function updateUI() {
   });
   if (game.getSelectedFactory() !== undefined) document.querySelector(`button[data-factory="${game.getSelectedFactory()}"]`)!.classList.add('selected');
   const task = game.getTask();
-  taskInfoDiv.querySelector('h2')!.innerText = task.title;
-  taskInfoDiv.querySelector('p')!.innerText = task.description;
+  let title = task.title;
+  if (task.storage[69] === 1) {
+    taskInfoTitle.classList.add('easteregg');
+    title = 'Thanks for playing!';
+  }
+  taskInfoTitle.innerText = title;
+  taskInfoDesc.innerText = task.description;
 }
 
 function getBatteryDataById(id: BatteryType) {
