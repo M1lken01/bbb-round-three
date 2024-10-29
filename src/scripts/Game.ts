@@ -10,10 +10,12 @@ class Game {
   private isDragging = false;
   private dragStart = new Vec2();
   private task: Task;
+  private taskIdx: number;
   private buildingSize = 25;
   private storage: FactoryStorage;
 
   constructor(mapSize: Vec2, taskIdx: number) {
+    this.taskIdx = taskIdx;
     this.task = tasks[taskIdx];
     this.storage = JSON.parse(JSON.stringify(this.task.storage));
     this.mapSize = mapSize;
@@ -137,7 +139,7 @@ class Game {
       this.storage[battery]--;
       if (this.isTaskComplete()) {
         alert('task completed');
-        setUnlockedTasks([...getUnlockedTasks(), getUnlockedTasks().reverse()[0] + 1]);
+        setUnlockedTasks(Array.from(new Set([...getUnlockedTasks(), ...(this.task.unlocks ?? [])])));
       }
     }
     return canBuild;
@@ -209,5 +211,9 @@ class Game {
 
   getTask() {
     return this.task;
+  }
+
+  getTaskIdx() {
+    return this.taskIdx;
   }
 }

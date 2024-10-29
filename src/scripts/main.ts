@@ -4,6 +4,8 @@ if (getUnlockedTasks() === null) setUnlockedTasks();
 const gameElem = document.querySelector('canvas#game') as HTMLCanvasElement;
 const ctx = gameElem.getContext('2d') as CanvasRenderingContext2D;
 const buildFactoryButtons = document.querySelectorAll('button.factory-button') as NodeListOf<HTMLButtonElement>;
+const menuContainerDiv = document.querySelector('div#menu-container') as HTMLDivElement;
+const gameContainerDiv = document.querySelector('div#game-container') as HTMLDivElement;
 const taskInfoDiv = document.querySelector('div#task') as HTMLDivElement;
 const taskInfoTitle = taskInfoDiv.querySelector('h2') as HTMLHeadingElement;
 const taskInfoDesc = taskInfoDiv.querySelector('p') as HTMLParagraphElement;
@@ -22,28 +24,25 @@ interface BatteryData {
 }
 type FactoryStorage = Record<BatteryType, number>;
 
-type Task = { title: string; description: string; cities: City[]; storage: FactoryStorage };
+type Task = { title: string; description: string; cities: City[]; storage: FactoryStorage; unlocks?: number[] };
 const tasks: Task[] = [
   {
     title: 'Tutorial',
     description: 'lorem',
     cities: [new City(0, new Vec2(373, 296)), new City(1, new Vec2(768, 469)), new City(2, new Vec2(1231, 372))],
-    storage: {
-      0: 1,
-      1: 1,
-      2: 1,
-    },
+    storage: { 0: 1, 1: 1, 2: 1 },
+    unlocks: [1, 2, 3],
   },
   { title: 'task', description: '', cities: [], storage: { 0: 2, 1: 2, 2: 2 } },
   { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 }, unlocks: [4, 5, 6, 7] },
   { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
   { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
   { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 }, unlocks: [8, 9, 10] },
   { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
   { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
-  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
-  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
-  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
+  { title: 'task', description: '', cities: [], storage: { 0: 0, 1: 0, 2: 0 } },
   { title: 'M&M', description: 'This level is unachievable without cheating.', cities: [], storage: { 0: 0, 1: 0, 2: 0, 69: 1 } },
 ];
 
@@ -98,6 +97,7 @@ function updateUI() {
   if (game.getSelectedFactory() !== undefined) document.querySelector(`button[data-factory="${game.getSelectedFactory()}"]`)!.classList.add('selected');
   const task = game.getTask();
   let title = task.title;
+  taskInfoTitle.classList.remove('easteregg');
   if (task.storage[69] === 1) {
     taskInfoTitle.classList.add('easteregg');
     title = 'Thanks for playing!';
@@ -125,6 +125,29 @@ function setupListeners() {
   });
 }
 
+function back() {
+  game = new Game(new Vec2(), 0);
+  toggleMenu(1);
+}
+
+function restart() {
+  startTask(game.getTaskIdx());
+}
+
+function toggleMenu(forceShow = -1) {
+  if (forceShow === 1) {
+    menuContainerDiv.classList.remove('!hidden');
+    gameContainerDiv.classList.add('!hidden');
+  } else if (forceShow === 0) {
+    menuContainerDiv.classList.add('!hidden');
+    gameContainerDiv.classList.remove('!hidden');
+  } else {
+    menuContainerDiv.classList.toggle('!hidden');
+    gameContainerDiv.classList.toggle('!hidden');
+  }
+  loadTasks();
+}
+
 function startTask(idx: number) {
   game = new Game(new Vec2(1600, 900), idx);
   gameElem.width = game.getMapSize().getX();
@@ -133,7 +156,8 @@ function startTask(idx: number) {
   updateUI();
 }
 
-async function init() {
+function loadTasks() {
+  taskListDiv.innerHTML = '';
   const unlockedTasks = getUnlockedTasks();
   for (let i = 0; i < tasks.length; i++) {
     const button = document.createElement('button');
@@ -141,13 +165,16 @@ async function init() {
     button.innerText = tasks[i].title;
     if (unlockedTasks.includes(i))
       button.addEventListener('click', () => {
-        document.querySelector('div#menu-container')!.classList.add('!hidden');
-        document.querySelector('div#game-container')!.classList.remove('!hidden');
+        toggleMenu(0);
         startTask(i);
       });
     else button.disabled = true;
     taskListDiv.appendChild(button);
   }
+}
+
+async function init() {
+  loadTasks();
   loadResources();
   setupListeners();
 }
