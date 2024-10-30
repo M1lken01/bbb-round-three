@@ -2,6 +2,7 @@ class City {
   private batteryType: BatteryType;
   private position: Vec2;
   private size = 25;
+  private range = 100;
   private name: string;
   private supplied: boolean = false;
 
@@ -29,8 +30,12 @@ class City {
     return this.position;
   }
 
-  public supply() {
-    this.supplied = true;
+  public supply(value = true) {
+    this.supplied = value;
+  }
+
+  public unSupply() {
+    this.supplied = game.getFactoriesInRange(this.position, this.range, this.batteryType).length > 1;
   }
 
   public isSupplied() {

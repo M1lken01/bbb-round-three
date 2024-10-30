@@ -1,5 +1,9 @@
 const setUnlockedTasks = (value: number[] = [0]) => localStorage.setItem('unlocked_tasks', JSON.stringify(value));
 const getUnlockedTasks = (): number[] => JSON.parse(localStorage.getItem('unlocked_tasks') ?? '[]');
+const addUnlockedTasks = (value: number = 0) => setUnlockedTasks(Array.from(new Set([...getUnlockedTasks(), value])));
+const setCompletedTasks = (value: number[] = [0]) => localStorage.setItem('completed_tasks', JSON.stringify(value));
+const getCompletedTasks = (): number[] => JSON.parse(localStorage.getItem('completed_tasks') ?? '[]');
+const addCompletedTasks = (value: number = 0) => setCompletedTasks(Array.from(new Set([...getCompletedTasks(), value])));
 if (getUnlockedTasks().length === 0) setUnlockedTasks();
 const gameElem = document.querySelector('canvas#game') as HTMLCanvasElement;
 const ctx = gameElem.getContext('2d') as CanvasRenderingContext2D;
@@ -25,92 +29,7 @@ interface BatteryData {
   cityImg?: HTMLImageElement;
 }
 type FactoryStorage = Record<BatteryType, number>;
-
 type Task = { title: string; description: string; cities: City[]; storage: FactoryStorage; unlocks?: number[] };
-const tasks: Task[] = [
-  {
-    title: 'Tutorial',
-    description: 'lorem',
-    cities: [new City(0, new Vec2(373, 296)), new City(1, new Vec2(768, 469)), new City(2, new Vec2(1231, 372))],
-    storage: { 0: 1, 1: 1, 2: 1 },
-    unlocks: [1, 2, 3],
-  },
-  {
-    title: 'Red County',
-    description: 'Supply the red cities in Red County while balancing resources across green and blue.',
-    cities: [
-      new City(1, new Vec2(310, 304), 'Green City'),
-      new City(2, new Vec2(710, 448), 'Blue City'),
-      new City(0, new Vec2(1110, 349), 'Red City 1'),
-      new City(0, new Vec2(1099, 540), 'Red City 2'),
-      new City(0, new Vec2(501, 205), 'Red City 3'),
-      new City(0, new Vec2(396, 598), 'Red City 4'),
-      new City(0, new Vec2(998, 696), 'Red City 5'),
-      new City(0, new Vec2(550, 551), 'Red City 6'),
-      new City(0, new Vec2(660, 255), 'Red City 7'),
-      new City(0, new Vec2(1150, 404), 'Red City 8'),
-      new City(0, new Vec2(1242, 298), 'Red City 9'),
-    ],
-    storage: { 0: 4, 1: 1, 2: 1 },
-  },
-  {
-    title: 'Blue Ridge',
-    description: 'Supply clusters of blue cities across the Blue Ridge area, maintaining efficiency and resource management.',
-    cities: [
-      new City(0, new Vec2(349, 329), 'Red City'),
-      new City(2, new Vec2(907, 446), 'Green City'),
-      new City(1, new Vec2(270, 146), 'Blue City 1'),
-      new City(1, new Vec2(444, 140), 'Blue City 2'),
-      new City(1, new Vec2(367, 230), 'Blue City 3'),
-      new City(1, new Vec2(685, 545), 'Blue City 4'),
-      new City(1, new Vec2(727, 380), 'Blue City 5'),
-      new City(1, new Vec2(818, 500), 'Blue City 6'),
-      new City(1, new Vec2(1236, 347), 'Blue City 8'),
-      new City(1, new Vec2(1149, 429), 'Blue City 9'),
-      new City(1, new Vec2(1307, 401), 'Blue City 10'),
-      new City(1, new Vec2(1190, 527), 'Blue City 11'),
-      new City(1, new Vec2(369, 618), 'Blue City 13'),
-      new City(1, new Vec2(211, 675), 'Blue City 14'),
-      new City(1, new Vec2(396, 718), 'Blue City 15'),
-      new City(1, new Vec2(297, 762), 'Blue City 16'),
-    ],
-    storage: { 0: 1, 1: 4, 2: 1 },
-  },
-  {
-    title: 'Green Province',
-    description: 'An all-green challenge, connect each green city with factories nearby!',
-    cities: [
-      new City(0, new Vec2(162, 256), 'Red City 1'),
-      new City(0, new Vec2(300, 255), 'Red City 2'),
-      new City(0, new Vec2(237, 347), 'Red City 3'),
-      new City(1, new Vec2(258, 279), 'Blue City 1'),
-      new City(1, new Vec2(344, 175), 'Blue City 2'),
-      new City(1, new Vec2(426, 297), 'Blue City 3'),
-      new City(2, new Vec2(646, 531), 'Green City 1'),
-      new City(2, new Vec2(487, 609), 'Green City 2'),
-      new City(2, new Vec2(517, 740), 'Green City 3'),
-      new City(2, new Vec2(715, 441), 'Green City 4'),
-      new City(2, new Vec2(835, 474), 'Green City 5'),
-      new City(2, new Vec2(811, 583), 'Green City 6'),
-      new City(2, new Vec2(1109, 194), 'Green City 7'),
-      new City(2, new Vec2(1025, 361), 'Green City 8'),
-      new City(2, new Vec2(996, 257), 'Green City 9'),
-      new City(2, new Vec2(1171, 333), 'Green City 10'),
-      new City(2, new Vec2(1226, 362), 'Green City 11'),
-      new City(2, new Vec2(1270, 538), 'Green City 12'),
-    ],
-    storage: { 0: 1, 1: 1, 2: 4 },
-    unlocks: [4, 5, 6, 7],
-  },
-  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
-  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
-  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
-  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 }, unlocks: [8, 9, 10] },
-  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
-  { title: 'task', description: '', cities: [], storage: { 0: 1, 1: 1, 2: 1 } },
-  { title: 'task', description: '', cities: [], storage: { 0: 0, 1: 0, 2: 0 } },
-  { title: 'M&M', description: 'This level is unachievable without cheating.', cities: [], storage: { 0: 0, 1: 0, 2: 0, 69: 1 } },
-];
 
 function drawCircle(position: Vec2 = new Vec2(), radius: number = 5, color: string | CanvasGradient = '#000', filled: boolean = false) {
   ctx.beginPath();
@@ -160,13 +79,13 @@ function updateUI() {
   const task = game.getTask();
   let title = task.title;
   taskInfoTitle.classList.remove('easteregg');
-  if (task.storage[69] === 1) {
+  if (task.storage[69] === 1 && getCompletedTasks().length === tasks.length) {
     taskInfoTitle.classList.add('easteregg');
-    title = 'Thanks for playing!';
+    title = 'Köszönjük, hogy játszottál!';
   }
   taskInfoTitle.innerText = title;
   taskInfoDesc.innerText = task.description;
-  restartOrNextButton.innerText = game.isTaskComplete() ? 'Next' : 'Restart';
+  restartOrNextButton.innerText = game.isTaskComplete() ? 'Következő' : 'Újrakezdés';
 }
 
 function getBatteryDataById(id: BatteryType) {
@@ -230,16 +149,21 @@ function startTask(idx: number) {
 function loadTasks() {
   taskListDiv.innerHTML = '';
   const unlockedTasks = getUnlockedTasks();
+  const completedTasks = getCompletedTasks();
   for (let i = 0; i < tasks.length; i++) {
     const button = document.createElement('button');
     button.classList.add('gray-button');
     button.innerText = tasks[i].title;
-    if (unlockedTasks.includes(i))
+    if (unlockedTasks.includes(i)) {
       button.addEventListener('click', () => {
         toggleMenu(0);
         startTask(i);
       });
-    else button.disabled = true;
+      if (completedTasks.includes(i)) {
+        button.classList.add('completed');
+      }
+    } else button.disabled = true;
+
     taskListDiv.appendChild(button);
   }
 }

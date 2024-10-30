@@ -35,6 +35,10 @@ class Factory {
     );
   }
 
+  public destroy(): void {
+    game.getCitiesInRange(this.position, this.range, this.batteryType).forEach((city) => city.unSupply());
+  }
+
   public getId(): string {
     return this.id;
   }

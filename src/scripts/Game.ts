@@ -91,12 +91,12 @@ class Game {
       const type = prompt('enter type (0:red,1:blue,2:green)');
       if (type !== null && type !== '' && Number(type) >= 0 && Number(type) <= 2) this.taskBuilder.push(new City(Number(type), this.mousePos));
     }
-    if (this.selectedFactory !== undefined) {
-      if (this.buildFactory(this.selectedFactory, this.mousePos)) this.selectedFactory = undefined;
-    } else if (this.hoveredFactory !== undefined) {
-      if (confirm('demolish factory?')) {
+    if (!this.isTaskComplete()) {
+      if (this.selectedFactory !== undefined && this.buildFactory(this.selectedFactory, this.mousePos)) this.selectedFactory = undefined;
+      else if (this.hoveredFactory !== undefined && confirm('Biztosan le szeretné rombolni ezt a gyárat?')) {
         const idx = this.getFactoryIdxById(this.hoveredFactory.getId());
         if (idx >= 0 && idx < this.factories.length) {
+          this.hoveredFactory.destroy();
           this.factories.splice(idx, 1);
           this.storage[this.hoveredFactory.getType()]++;
           this.hoveredFactory = undefined;
@@ -141,12 +141,13 @@ class Game {
       this.storage[battery] > 0 &&
       this.getCitiesInRange(location, this.buildingSize).length === 0 &&
       this.getFactoriesInRange(location, this.buildingSize).length === 0;
-    if (canBuild && build) {
+    if (canBuild && build && !this.isTaskComplete()) {
       this.factories.push(new Factory(battery, location));
       this.storage[battery]--;
       if (this.isTaskComplete()) {
-        alert('task completed');
-        setUnlockedTasks(Array.from(new Set([...getUnlockedTasks(), ...(this.task.unlocks ?? [])])));
+        alert('Feladat teljesítve!');
+        addUnlockedTasks(...(this.task.unlocks ?? []));
+        addCompletedTasks(this.taskIdx);
       }
     }
     return canBuild;
@@ -204,8 +205,10 @@ class Game {
     return game.getCities().filter((city) => (type === undefined || city.getBatteryType() === type) && vector.getDistanceFrom(city.getPosition()) <= range);
   }
 
-  getFactoriesInRange(vector: Vec2, range: number) {
-    return game.getFactories().filter((factory) => vector.getDistanceFrom(factory.getPosition()) <= range);
+  getFactoriesInRange(vector: Vec2, range: number, type?: BatteryType) {
+    return game
+      .getFactories()
+      .filter((factory) => (type === undefined || factory.getType() === type) && vector.getDistanceFrom(factory.getPosition()) <= range);
   }
 
   getFactoryIdxById(id: string) {
@@ -225,7 +228,7 @@ class Game {
   }
 
   getTaskBuilder() {
-    return this.taskBuilder.map((city) => `new City(${city.getBatteryType()}, new Vec2(${city.getPosition().getX()}, ${city.getPosition().getY()}))`);
+    return this.taskBuilder.map((city) => `new City(${city.getBatteryType()}, new Vec2(${city.getPosition().getX()}, ${city.getPosition().getY()}))`).join(',');
   }
 
   setDebug(value: boolean) {

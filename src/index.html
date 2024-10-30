@@ -11,6 +11,7 @@
     <script src="./scripts/Vec2.js"></script>
     <script src="./scripts/Factory.js"></script>
     <script src="./scripts/City.js"></script>
+    <script src="./scripts/tasks.js"></script>
     <script src="./scripts/Game.js"></script>
     <script src="./scripts/main.js" defer></script>
   </head>
@@ -20,7 +21,7 @@
     </header>
     <div class="flex flex-col items-center flex-1 m-8">
       <div id="menu-container" class="flex flex-col items-center justify-center flex-1 w-full text-center md:mt-[20svh]">
-        <div class="grid flex-1 w-full grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="grid flex-1 w-full grid-cols-1 gap-4 md:grid-cols-4">
           <div class="flex flex-col items-center justify-start gap-16 md:mt-8">
             <h2 class="text-5xl font-bold">Gyorstalpaló</h2>
             <p class="text-2xl text-justify">
@@ -30,39 +31,39 @@
               megépítéséhez. Ha egy gyárat szeretne lebontani, kattintson rá a térképen.
             </p>
           </div>
-          <div class="flex flex-col items-center justify-start gap-16">
+          <div class="flex flex-col items-center justify-start gap-16 md:col-span-2">
             <h1 class="text-6xl font-bold">Energrid</h1>
             <div class="flex flex-col w-full gap-4 max-w-[512px]">
-              <h2>Select a task</h2>
-              <div id="tasks" class="grid grid-cols-4 grid-rows-3 gap-2"></div>
+              <h2>Válassz egy feladatot</h2>
+              <div id="tasks" class="grid grid-cols-3 grid-rows-3 gap-2"></div>
             </div>
           </div>
           <div class="flex flex-col items-center justify-start gap-16 md:mt-8">
-            <h2 class="text-5xl font-bold">Legend</h2>
+            <h2 class="text-5xl font-bold">Jelmagyarázat</h2>
             <div class="grid grid-cols-3 grid-rows-2 gap-x-16 gap-y-24">
               <div class="flex flex-col items-center justify-start">
-                <img src="imgs/assets/cities/red.svg" alt="red circle city" class="w-32 h-32" />
-                <h3>red circle city</h3>
+                <img src="imgs/assets/cities/red.svg" alt="piros kör város" class="w-32 h-32" />
+                <h3>Piros kör város</h3>
               </div>
               <div class="flex flex-col items-center justify-start">
-                <img src="imgs/assets/cities/blue.svg" alt="blue square city" class="w-32 h-32" />
-                <h3>blue square city</h3>
+                <img src="imgs/assets/cities/blue.svg" alt="kék négyzet város" class="w-32 h-32" />
+                <h3>Kék négyzet város</h3>
               </div>
               <div class="flex flex-col items-center justify-start">
-                <img src="imgs/assets/cities/green.svg" alt="green triangle city" class="w-32 h-32" />
-                <h3>green triangle city</h3>
+                <img src="imgs/assets/cities/green.svg" alt="zöld háromszög város" class="w-32 h-32" />
+                <h3>Zöld háromszög város</h3>
               </div>
               <div class="flex flex-col items-center justify-start">
-                <img src="imgs/assets/factories/red.svg" alt="red circle factory" class="w-32 h-32" />
-                <h3>red circle factory</h3>
+                <img src="imgs/assets/factories/red.svg" alt="piros kör gyár" class="w-32 h-32" />
+                <h3>Piros kör gyár</h3>
               </div>
               <div class="flex flex-col items-center justify-start">
-                <img src="imgs/assets/factories/blue.svg" alt="blue square factory" class="w-32 h-32" />
-                <h3>blue square factory</h3>
+                <img src="imgs/assets/factories/blue.svg" alt="kék négyzet gyár" class="w-32 h-32" />
+                <h3>Kék négyzet gyár</h3>
               </div>
               <div class="flex flex-col items-center justify-start">
-                <img src="imgs/assets/factories/green.svg" alt="green triangle factory" class="w-32 h-32" />
-                <h3>green triangle factory</h3>
+                <img src="imgs/assets/factories/green.svg" alt="zöld háromszög gyár" class="w-32 h-32" />
+                <h3>Zöld háromszög gyár</h3>
               </div>
             </div>
           </div>
@@ -74,30 +75,27 @@
           <div class="grid grid-cols-3 gap-4">
             <button id="factory-0" data-factory="0" class="factory-button gray-button">
               <img src="imgs/assets/factories/red.svg" alt="factory" />
-              <span>Red Circle Factory</span>
-              <span>1</span>
+              <span>Piros kör gyár</span>
+              <span>{count}</span>
             </button>
             <button id="factory-1" data-factory="1" class="factory-button gray-button">
               <img src="imgs/assets/factories/blue.svg" alt="factory" />
-              <span>Blue Square Factory</span>
-              <span>1</span>
+              <span>Kék négyzet gyár</span>
+              <span>{count}</span>
             </button>
             <button id="factory-2" data-factory="2" class="factory-button gray-button">
               <img src="imgs/assets/factories/green.svg" alt="factory" />
-              <span>Green Triangle Factory</span>
-              <span>1</span>
+              <span>Zöld háromszög gyár</span>
+              <span>{count}</span>
             </button>
           </div>
           <div id="task">
-            <h2 class="text-4xl font-bold">task</h2>
-            <p class="text-xl">
-              Lorem, ipsum dolor sit amet consectetur adipisicing elit. Libero quam aliquid mollitia dolores. Ratione blanditiis itaque quidem officiis et quia
-              numquam commodi id, amet, voluptatum quae voluptate earum ad expedita!
-            </p>
+            <h2 class="text-4xl font-bold">{title}</h2>
+            <p class="text-xl">{description}</p>
           </div>
           <div id="controls" class="flex justify-between text-4xl">
-            <button class="button" id="back">Back</button>
-            <button class="button" id="restart-or-next">Restart</button>
+            <button class="button" id="back">Vissza</button>
+            <button class="button" id="restart-or-next">Újrakezdés</button>
           </div>
         </div>
       </div>
@@ -107,7 +105,7 @@
         <button onclick="toggleDarkmode()"><img src="./imgs/moon.png" alt="darkmode" /></button>
       </p>
       <p>&copy; 2024 M&amp;M. Minden jog fenntartva.</p>
-      <p>Készítette: M&amp;M | <a href="https://github.com/M1lken01/bbb-round-two" class="link">github</a></p>
+      <p>Készítette: M&amp;M | <a href="https://github.com/M1lken01/bbb-round-three" class="link">github</a></p>
     </footer>
   </body>
 </html>

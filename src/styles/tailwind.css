@@ -106,7 +106,11 @@ footer img {
 }
 
 #tasks button {
-  @apply text-lg xl:text-2xl aspect-square;
+  @apply xl:text-2xl aspect-square;
+}
+
+#tasks button.completed {
+  @apply text-green-500;
 }
 
 @keyframes gradient-animation {
